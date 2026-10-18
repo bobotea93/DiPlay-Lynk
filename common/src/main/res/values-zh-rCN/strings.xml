@@ -970,4 +970,16 @@
 
     <string name="settings_hotspot_interface">热点网络接口（可选）</string>
     <string name="settings_hotspot_interface_description">仅用于把热点放在 Android 不认为是 Wi-Fi 热点的网络接口上的车机，例如部分吉利、领克及其它高通车机上的 eth0.3。留空则自动查找。</string>
+
+    <string name="settings_ecarx_title">仪表盘导航（ECARX）</string>
+    <string name="settings_ecarx_navigation">仪表盘显示导航</string>
+    <string name="settings_ecarx_navigation_description">通过 ECARX DIM 接口把 CarPlay 的转向箭头、距离和路名发送到车机仪表，数据不出车机。</string>
+    <string name="settings_ecarx_presentation">仪表盘同步投屏</string>
+    <string name="settings_ecarx_presentation_description">请求车机在仪表盘上同时显示 DiPlay 画面。平台不回传是否成功，请以仪表实际显示为准。</string>
+    <string name="settings_ecarx_navi_mode">仪表导航模式</string>
+    <string name="settings_ecarx_navi_mode_off">保持车机自带导航</string>
+    <string name="settings_ecarx_navi_mode_on">优先使用 CarPlay 导航</string>
+    <string name="settings_ecarx_turn_arrow">原始转向箭头（实验性）</string>
+    <string name="settings_ecarx_turn_arrow_description">额外把机动动作以数字箭头发给仪表。ECARX 的转向 ID 表未经验证，请先在车上核对箭头方向。</string>
+    <string name="settings_ecarx_unavailable">车机拒绝了这次请求</string>
 </resources>
