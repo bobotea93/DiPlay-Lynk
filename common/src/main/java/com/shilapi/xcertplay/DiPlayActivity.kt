@@ -141,12 +141,11 @@ internal object SettingsInformationArchitecture {
             SettingsSection.CONNECTION_SETUP,
             SettingsSection.AUTOMATIC_CONNECTION,
             SettingsSection.USB_CONNECTION,
-            SettingsSection.BYD_ADB,
             SettingsSection.PERMISSIONS_AND_HELP,
         ),
         SettingsCategory.DISPLAY to setOf(SettingsSection.DISPLAY_AND_PERFORMANCE),
         SettingsCategory.AUDIO to setOf(SettingsSection.AUDIO_ROUTING),
-        SettingsCategory.NAVIGATION to setOf(SettingsSection.LOCATION, SettingsSection.BYD_NAVIGATION),
+        SettingsCategory.NAVIGATION to setOf(SettingsSection.LOCATION),
         SettingsCategory.VEHICLE to setOf(
             SettingsSection.CARPLAY_CONTROLS,
             SettingsSection.WHEEL_KEYS,
@@ -154,12 +153,10 @@ internal object SettingsInformationArchitecture {
         ),
         SettingsCategory.DIAGNOSTICS to setOf(SettingsSection.DIAGNOSTICS),
         SettingsCategory.ADVANCED to setOf(
-            SettingsSection.CLUSTER_MAP,
             SettingsSection.LAUNCHER_BUBBLE,
             SettingsSection.EXPERIMENTAL_DISPLAY,
             SettingsSection.ADVANCED_MEDIA,
             SettingsSection.NAVIGATION_WHEEL,
-            SettingsSection.AMBIENT_LIGHTING,
         ),
     )
 }
@@ -5862,6 +5859,9 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         appendLine()
         appendLine("--- Standalone HUD compatibility ---")
         appendLine(BydOutputSettings.standaloneHudDiagnosticReport(appContext))
+        appendLine()
+        appendLine("--- ECARX integration (亿咖通 / 领克) ---")
+        appendLine(com.shilapi.xcertplay.hud.EcarxIntegration.reportLine(appContext))
         appendLine()
         appendLine("--- BYD vehicle-data probe ---")
         appendLine(

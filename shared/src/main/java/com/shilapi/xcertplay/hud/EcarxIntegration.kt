@@ -82,6 +82,22 @@ object EcarxIntegration {
         swKeyHandle = null
     }
 
+    /**
+     * 诊断报告用：ECARX 能力、DIM 开关状态、HUD 探针结果。
+     * 放在报告头部，避免关键信息只存在于被截断的日志里。
+     */
+    @JvmStatic
+    fun reportLine(context: Context): String {
+        val app = context.applicationContext
+        val dim = runCatching { EcarxOutputSettings.enabled(app) }.getOrDefault(false)
+        val projection = runCatching { EcarxOutputSettings.presentationSwitch(app) }.getOrDefault(false)
+        return buildString {
+            appendLine("available=" + EcarxCapabilities.available(app))
+            appendLine(EcarxCapabilities.describe(app))
+            appendLine("dimNaviEnabled=" + dim + " projectionSwitch=" + projection)
+        }
+    }
+
     /** 应用级 Context，仅用于 [uninstall] 反注册广播。 */
     private var currentContext: Context? = null
 }

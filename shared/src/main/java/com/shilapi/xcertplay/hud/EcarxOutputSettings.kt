@@ -46,7 +46,7 @@ object EcarxOutputSettings {
     fun naviModeSupported(): Boolean =
         EcarxCapabilities.classPresent(EcarxCapabilities.DIM_PROTOCOL_MANAGER)
 
-    fun enabled(context: Context): Boolean = prefs(context).getBoolean(KEY_ENABLED, false)
+    fun enabled(context: Context): Boolean = prefs(context).getBoolean(KEY_ENABLED, true)
 
     fun setEnabled(context: Context, enabled: Boolean) {
         check(prefs(context).edit().putBoolean(KEY_ENABLED, enabled).commit()) {
@@ -55,7 +55,7 @@ object EcarxOutputSettings {
     }
 
     /** The 仪表投屏 switch: mirrors the centre screen's presentation onto the cluster. */
-    fun presentationSwitch(context: Context): Boolean = prefs(context).getBoolean(KEY_PRESENTATION, false)
+    fun presentationSwitch(context: Context): Boolean = prefs(context).getBoolean(KEY_PRESENTATION, true)
 
     fun setPresentationSwitch(context: Context, enabled: Boolean) {
         check(prefs(context).edit().putBoolean(KEY_PRESENTATION, enabled).commit()) {

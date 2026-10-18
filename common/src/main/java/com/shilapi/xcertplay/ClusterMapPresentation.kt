@@ -210,9 +210,15 @@ internal class ClusterMapPresentation(
             if (name == null) {
                 // Never replace a missing 5.1 side layer with a full-screen display.
                 if (DiLink51ClusterLayout.supported()) return null
-                return displays.firstOrNull { display ->
+                val bydDisplay = displays.firstOrNull { display ->
                     val size = sizeOf(display)
                     DiLink4ClusterDisplay.accepts(display.name, size.x, size.y)
+                }
+                // ECARX（领克 / 亿咖通）：固件不给 BYD 那种副屏名字，仪表是普通 presentation display。
+                // 认领它，让 1280x720 的独立导航流投上去，而不是整屏镜像。
+                return bydDisplay ?: displays.firstOrNull { display ->
+                    display.isValid && sizeOf(display).x >= 1280 &&
+                        com.shilapi.xcertplay.hud.EcarxCapabilities.available(context)
                 }
             }
             return displays.firstOrNull { it.name == name }?.takeIf {
