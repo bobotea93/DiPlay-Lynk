@@ -1,6 +1,6 @@
 # DiPlay · 领克 05（ECARX DCY11）移植版
 
-这是 [DiPlay](https://github.com/shihabal3amri/DiPlay) 在**领克 05 / 亿咖通 DCY11 车机**（Android 9，API 28）上的个人移植分支。
+这是 [DiPlay](https://github.com/shihabal3amri/DiPlay) 在**领克 05 / 亿咖通 DCY11 车机**（高通 820A / MSM8996，Android 9，API 28）上的个人移植分支。
 
 上游 DiPlay 是面向比亚迪 DiLink 车机的 CarPlay 接收端；本仓库保留其全部通用能力，替换平台相关部分，使 CarPlay、仪表投送与车机方控在领克 05 上可用。
 
@@ -16,6 +16,16 @@
 | DiPlay-ECARX（参考实现） | https://github.com/jiopia/DiPlay-ECARX | ECARX / 亿咖通平台适配参考 |
 
 上游版权归其作者所有；本仓库仅包含平台适配与本地化改动。原始 README 保留为 `README.upstream.md`、`README.upstream.zh-CN.md`、`README.upstream.zh-TW.md`。
+
+## 支持范围
+
+| 车机 | 状态 | 说明 |
+|---|---|---|
+| 领克 05 · 高通 820A（ECARX DCY11，Android 9） | ✅ 已验证 | 本分支开发与测试所用车机 |
+| 其它 ECARX / 亿咖通 820A 平台 | ⚠️ 可尝试 | 按 DIM 类是否存在于系统镜像探测，不按车型写死 |
+| 非 ECARX 车机 | ❌ 不支持 | 所有 ECARX 调用都会静默跳过，只保留中控 CarPlay |
+
+平台识别不依赖车型字符串：只要系统里有 `com.ecarx.xui.adaptapi.diminteraction.DimInteraction`，或存在 ECARX 系统包，就会启用仪表相关功能；否则自动降级。
 
 ## 本移植的改动
 
