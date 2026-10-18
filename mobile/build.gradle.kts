@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.shihab.diplay"
+        applicationId = "com.kakamatong.diplay.lynk"
         minSdk = 24
         targetSdk = 37
         versionCode = 40
