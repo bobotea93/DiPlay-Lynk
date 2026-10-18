@@ -16,6 +16,19 @@ object CarPlayMediaButton {
     const val NEXT = 4
     const val PREVIOUS = 5
 
+    /** Telephony HID report indices (AirPlayHid.telephonyDescriptor), as CarPlayController sends them. */
+    const val ANSWER = 1 // Hook Switch
+    const val HANGUP = 3 // Drop
+
+    /**
+     * ECARX（领克 / 亿咖通）方向盘按键在三种编码空间上报，参考 App 会先归一化再分发：
+     * 1. 标准 Android keycode；2. ECARX 私有 0x1Fxx：0x1F41=语音、0x1F43=接听；
+     * 3. 标准 keyCode + 200000 偏移：200231=语音、200085=播放暂停、200087=下一首、200088=上一首。
+     */
+    const val ECARX_VOICE_8001 = 0x1F41
+    const val ECARX_ANSWER_8003 = 0x1F43
+    const val ECARX_OFFSET = 200_000
+
     /** BYD's steering-wheel play/pause key; the firmware normally rewrites it to MEDIA_PLAY/PAUSE. */
     const val KEYCODE_BYD_AUTO_MEDIA_PLAY_PAUSE = 353
 
@@ -38,7 +51,8 @@ object CarPlayMediaButton {
      * instant down/up pair, so a long press arrives as its own key rather than as a held one.
      */
     fun opensSiri(keyCode: Int): Boolean = keyCode == KeyEvent.KEYCODE_VOICE_ASSIST ||
-        keyCode == KEYCODE_BYD_AUTO_MEDIA_VOICE || keyCode == KEYCODE_BYD_AUTO_MEDIA_VOICE_LONG
+        keyCode == KEYCODE_BYD_AUTO_MEDIA_VOICE || keyCode == KEYCODE_BYD_AUTO_MEDIA_VOICE_LONG ||
+        keyCode == ECARX_VOICE_8001 || keyCode == ECARX_OFFSET + KeyEvent.KEYCODE_VOICE_ASSIST
 
     /** The voice keys BYD sends only for CarPlay; they open Siri while a CarPlay session runs. */
     fun opensSiriWhileCarPlay(keyCode: Int): Boolean =
@@ -50,14 +64,25 @@ object CarPlayMediaButton {
 
     /** The CarPlay press for [keyCode], or null when the key is not a media key CarPlay handles. */
     fun forKeyCode(keyCode: Int, experimentalDiLink3Keys: Boolean = false): Int? = when (keyCode) {
-        KeyEvent.KEYCODE_MEDIA_NEXT -> NEXT
-        KeyEvent.KEYCODE_MEDIA_PREVIOUS -> PREVIOUS
+        KeyEvent.KEYCODE_MEDIA_NEXT, ECARX_OFFSET + KeyEvent.KEYCODE_MEDIA_NEXT -> NEXT
+        KeyEvent.KEYCODE_MEDIA_PREVIOUS, ECARX_OFFSET + KeyEvent.KEYCODE_MEDIA_PREVIOUS -> PREVIOUS
         KeyEvent.KEYCODE_MEDIA_PLAY,
         KeyEvent.KEYCODE_MEDIA_PAUSE,
         KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
         KeyEvent.KEYCODE_HEADSETHOOK,
+        ECARX_OFFSET + KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
         KEYCODE_BYD_AUTO_MEDIA_PLAY_PAUSE -> PLAY_PAUSE
         KEYCODE_BYD_AUTO_MEDIA_PLAY_PAUSE_DILINK3 -> if (experimentalDiLink3Keys) PLAY_PAUSE else null
+        else -> null
+    }
+
+    /**
+     * CarPlay 通话按键索引（接听 / 挂断）；不是通话键返回 null。
+     * ECARX 私有接听码 0x1F43 与标准 CALL/ENDCALL 的 200000 偏移空间都识别。
+     */
+    fun forCallKeyCode(keyCode: Int): Int? = when (keyCode) {
+        KeyEvent.KEYCODE_CALL, ECARX_ANSWER_8003, ECARX_OFFSET + KeyEvent.KEYCODE_CALL -> ANSWER
+        KeyEvent.KEYCODE_ENDCALL, ECARX_OFFSET + KeyEvent.KEYCODE_ENDCALL -> HANGUP
         else -> null
     }
 
