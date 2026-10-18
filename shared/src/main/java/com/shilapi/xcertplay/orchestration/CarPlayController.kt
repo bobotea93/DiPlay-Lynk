@@ -179,6 +179,8 @@ class CarPlayController(
         }
         WifiScanPause.restoreIfNeeded(context.applicationContext)
         BydNavigationOutputs.start(context.applicationContext)
+        // ECARX（亿咖通）：仪表投送桥。非 ECARX 车机上 DimInteraction 不存在，initialize 内部会安静返回。
+        runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.initialize(context.applicationContext) }
         BydNavigationOutputs.setClusterStreamControl(::applyClusterUi)
     }
 
@@ -370,6 +372,13 @@ class CarPlayController(
                     !closed && activeSession === session && !session.isClosed
                 }
             }
+            // ECARX：CarPlay 会话期间把车机蓝牙的 A2DP/HFP 让出去（适配器不动，保 iAP2 通道）
+            runCatching {
+                com.shilapi.xcertplay.bluetooth.CarBluetoothProfileGuard.yieldForSession(
+                    appContext,
+                    null,
+                ) { debugLog(it) }
+            }
             if (replacement) restoreDashboardContent(session)
             debugLog(
                 "AirPlay session active controller=${session.controllerId ?: "unknown"} " +
@@ -385,6 +394,8 @@ class CarPlayController(
                 synchronized(albumReplayLock) { initialArtworkReplay = null }
                 BydNavigationOutputs.endNow(preserveTurnOverlay = !closed && config.transport == CarPlayTransport.WIRELESS)
                 BydBluetoothSuspend.resume(appContext, this@CarPlayController) { debugLog(it) }
+                // ECARX：会话结束，恢复车机蓝牙的 A2DP/HFP
+                runCatching { com.shilapi.xcertplay.bluetooth.CarBluetoothProfileGuard.restore(appContext) { debugLog(it) } }
                 com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(false)
                 videoListener?.onVideoSessionEnded()
                 synchronized(playbackStatus) {
@@ -818,6 +829,8 @@ class CarPlayController(
     private fun onRouteFrame(frame: com.shilapi.xcertplay.iap2.wire.Iap2Frame) {
         BydNavigationOutputs.onFrame(frame)
         com.shilapi.xcertplay.glance.CarPlayGlance.onFrame(frame)
+        // ECARX：把 iAP2 帧喂给仪表投送桥（导航/媒体/通话）
+        runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.onFrame(frame) }
         synchronized(playbackStatus) {
             val previousPlaying = playbackStatus.playing
             playbackStatus.acceptUpdate(frame)?.let { it to (it.playing != previousPlaying) }
