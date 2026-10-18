@@ -1,4 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ECARX（亿咖通）系统级权限：仅当 APK 与车机 framework-res 同证书（AOSP platform 密钥）时才会被授予 -->
+    <uses-permission android:name="android.car.permission.CAR_VENDOR_EXTENSION" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.car.permission.CAR_CONTROL_AUDIO_VOLUME" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.cevt.dimsupportservice.permission.DIM_MESSAGING" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="ecarx.oem.permission.OPENAPI_NAVI_PERMISSION" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" tools:ignore="ProtectedPermissions" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
