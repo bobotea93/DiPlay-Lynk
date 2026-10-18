@@ -39,3 +39,10 @@ release-signing.properties
 *.key
 *.apk
 *.aab
+
+# MFi 身份（Apple 私有资产，绝不入库）
+**/assets/offline-mfi/
+*.p7b
+*.pk8
+keystore.properties
+*.jks
