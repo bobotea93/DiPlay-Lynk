@@ -393,6 +393,8 @@ class CarPlayController(
                 activeSession = null
                 synchronized(albumReplayLock) { initialArtworkReplay = null }
                 BydNavigationOutputs.endNow(preserveTurnOverlay = !closed && config.transport == CarPlayTransport.WIRELESS)
+                // ECARX：会话结束，清掉仪表上遗留的导航箭头/距离
+                runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.clear() }
                 BydBluetoothSuspend.resume(appContext, this@CarPlayController) { debugLog(it) }
                 // ECARX：会话结束，恢复车机蓝牙的 A2DP/HFP
                 runCatching { com.shilapi.xcertplay.bluetooth.CarBluetoothProfileGuard.restore(appContext) { debugLog(it) } }
@@ -687,6 +689,8 @@ class CarPlayController(
         connectionDiagnostic("teardown begin transport=${config.transport}")
         videoGate?.close()
         BydNavigationOutputs.endNow()
+        // ECARX：teardown 也清一次，覆盖会话未正常结束的路径
+        runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.clear() }
         com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(false)
         BydNavigationOutputs.clearClusterStreamControl(::applyClusterUi)
         closeReceivers()
