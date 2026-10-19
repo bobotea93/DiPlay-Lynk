@@ -90,7 +90,6 @@ internal object EcarxHudBridge {
     private var turnId = 0
     private var lastManeuverKey: String? = null
     private var lastPushed: EcarxDimApi.Guidance? = null
-    private var lastArrowType = -1
     private var ticksSincePush = 0
     private var guidanceActive = false
 
@@ -264,9 +263,6 @@ internal object EcarxHudBridge {
         watchProjectionLocked()
         // Guidance can expire without a frame (a list that stays empty), so check every second.
         if (lastPushed != null && route.current() == null) endLocked()
-        // The shipped ECARX toolkit re-posts navigation + arrow every 1000 ms. The cluster drops
-        // the arrow card between sparse updates, so with the arrow switch on, push every tick.
-        else if (lastPushed != null && arrowExperimental()) pushLocked(force = true)
         else if (++ticksSincePush >= KEEPALIVE_TICKS) pushLocked(force = true)
     }
 
@@ -295,9 +291,6 @@ internal object EcarxHudBridge {
             Log.i(TAG, "projection re-asserted #$presentationAttempts every ${interval}s (${result.reason})")
         }
     }
-
-    private fun arrowExperimental(): Boolean =
-        context?.let(EcarxOutputSettings::turnArrowExperimental) == true
 
     private fun pushLocked(force: Boolean) {
         val app = context ?: return
@@ -331,10 +324,6 @@ internal object EcarxHudBridge {
             // The int overload has no recovered code table, so draw the arrow locally and push it
             // through the (Bitmap) overload instead — the one code-table-free channel the device
             // exposes (see 亿咖通DIM-真机契约转储.md). The int counter stays as a fallback.
-            if (maneuver.type != lastArrowType) {
-                lastArrowType = maneuver.type
-                Log.i(TAG, "turn arrow type=${maneuver.type} side=${maneuver.drivingSide}")
-            }
             val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
             if (bitmap != null) EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
             else EcarxDimApi.updateTurnByTurnArrow(naviRef, guidance.turnId)
@@ -418,10 +407,7 @@ internal object EcarxHudBridge {
             4, 18, 19, 26 -> if (drivingSide == 1) ArrowKind.U_TURN_RIGHT else ArrowKind.U_TURN_LEFT
             6, 7, in 28..46 -> ArrowKind.ROUNDABOUT
             10, 12, 24, 25, 27 -> ArrowKind.DESTINATION
-            // Everything else (including Apple's "continue"/unknown ids) gets a straight arrow,
-            // matching NavigationWidget.arrow(); returning null left the cluster with no arrow at
-            // all, which is the state most maneuvers hit.
-            else -> ArrowKind.STRAIGHT
+            else -> return null
         }
         val size = 128
         val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
@@ -441,7 +427,7 @@ internal object EcarxHudBridge {
 
     private enum class ArrowKind {
         LEFT, RIGHT, SHARP_LEFT, SHARP_RIGHT, SLIGHT_LEFT, SLIGHT_RIGHT,
-        U_TURN_LEFT, U_TURN_RIGHT, ROUNDABOUT, DESTINATION, STRAIGHT,
+        U_TURN_LEFT, U_TURN_RIGHT, ROUNDABOUT, DESTINATION,
     }
 
     /** Builds the arrow outline for [kind] around [center], radius [r]. */
@@ -521,13 +507,6 @@ internal object EcarxHudBridge {
                 path.addCircle(c, c, r * 0.55f, android.graphics.Path.Direction.CW)
                 path.moveTo(c, c - r)
                 path.lineTo(c, c - r * 0.3f)
-            }
-            ArrowKind.STRAIGHT -> {
-                path.moveTo(c, c + r)
-                path.lineTo(c, c - r)
-                path.moveTo(c - r * 0.45f, c - r * 0.42f)
-                path.lineTo(c, c - r)
-                path.lineTo(c + r * 0.45f, c - r * 0.42f)
             }
             ArrowKind.DESTINATION -> {
                 path.addCircle(c, c, r * 0.35f, android.graphics.Path.Direction.CW)
