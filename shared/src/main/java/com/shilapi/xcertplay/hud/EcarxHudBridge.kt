@@ -50,9 +50,6 @@ internal object EcarxHudBridge {
     private const val LANE_GUIDANCE_UPDATE = 0x5204
     private const val NAVI_STATUS_IDLE = 0
 
-    /** The cluster does not dim bitmap arrows itself, so use a softer stroke at night. */
-    private val NIGHT_ARROW_COLOR = android.graphics.Color.rgb(180, 180, 180)
-
     /**
      * `drivingDirection` is deliberately left at 0. The field is a plain `int` in `s1/r`, its
      * source value is the toolkit's own, and no scale was recovered — passing Apple's
@@ -455,7 +452,7 @@ internal object EcarxHudBridge {
         val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (dayNightMode() == 1) NIGHT_ARROW_COLOR else android.graphics.Color.WHITE
+            color = android.graphics.Color.WHITE
             style = android.graphics.Paint.Style.STROKE
             strokeWidth = 12f
             strokeCap = android.graphics.Paint.Cap.ROUND
