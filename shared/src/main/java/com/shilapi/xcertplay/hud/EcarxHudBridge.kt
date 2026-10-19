@@ -106,6 +106,8 @@ internal object EcarxHudBridge {
     private var lastArrowPush = "none"
     private var lastArrowType = "none"
     private var lastArrowDirection = "none"
+    private var lastGuidanceTurnId = "none"
+    private var lastGuidanceDrivingDirection = "none"
     private var laneMethodNames: String? = null
 
     /**
@@ -352,6 +354,8 @@ internal object EcarxHudBridge {
             return
         }
         val guidance = guidanceFor(maneuver)
+        lastGuidanceTurnId = guidance.turnId.toString()
+        lastGuidanceDrivingDirection = guidance.drivingDirection.toString()
         if (!force && guidance == lastPushed) return
 
         // Order matches the toolkit: the aggregate payload first, then the discrete fields.
@@ -428,11 +432,14 @@ internal object EcarxHudBridge {
             turnId += 1
         }
         return EcarxDimApi.Guidance(
-            turnId = turnId,
+            // Experiment 0.3.8: the cluster gets the real Apple maneuver type instead of a
+            // meaningless incrementing counter. This is a diagnostic attempt, not a recovered
+            // ECARX turn-code table.
+            turnId = maneuver.type,
             distanceToNextMeters = maneuver.distanceMeters.toLong(),
             distanceToDestinationMeters = maneuver.remainingMeters ?: -1L,
             etaEpochSeconds = maneuver.arrivalEpochSeconds ?: -1L,
-            drivingDirection = DRIVING_DIRECTION_UNKNOWN,
+            drivingDirection = if (maneuver.drivingSide == 1) 1 else 0,
             status = NAVI_STATUS_ACTIVE,
             muteState = 0,
             dayNightMode = dayNightMode(),
@@ -619,6 +626,8 @@ internal object EcarxHudBridge {
             append(" lastArrowPush=").append(lastArrowPush)
             append(" lastArrowType=").append(lastArrowType)
             append(" lastArrowDirection=").append(lastArrowDirection)
+            append(" guidanceTurnId=").append(lastGuidanceTurnId)
+            append(" guidanceDrivingDirection=").append(lastGuidanceDrivingDirection)
             val lane = route.laneSnapshot()
             val laneText = lane.lanes.joinToString(";") { item ->
                 "pos=" + item.position + ",status=" + item.status + ",dir=" + item.direction +

@@ -1,3 +1,8 @@
+# DiPlay 0.3.8 — 2026-10-19
+
+- Diagnostic experiment: send the real Apple maneuver type as ECARX Guidance.turnId instead of the incrementing counter, and derive drivingDirection from drivingSide.
+- Record guidanceTurnId and guidanceDrivingDirection in the report. No recovered ECARX turn-code table yet.
+
 # DiPlay 0.3.7 — 2026-10-19
 
 - Record the ECARX updateNavigationInfo and updateTurnByTurnArrow results in the diagnostic report (lastNaviPush, lastArrowPush, lastArrowType, lastArrowDirection).
