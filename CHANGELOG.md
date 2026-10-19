@@ -1,3 +1,8 @@
+# DiPlay 0.3.2 — 2026-10-19
+
+- Draw a straight arrow for straight/follow-road/ramp maneuvers (Apple types 3, 5, 8, 9, 11, 51) and for any unmapped maneuver type, so the ECARX cluster never goes completely blank.
+- Record the last maneuver type that used the straight fallback in the diagnostic report.
+
 # DiPlay 0.3.1 — 2026-10-19
 
 - Add selectable update channels for the Lynk port: GitHub direct, `gh-proxy.com`, and `ghproxy.net`, with automatic fallback between them. The same channel is used for release metadata and APK downloads.

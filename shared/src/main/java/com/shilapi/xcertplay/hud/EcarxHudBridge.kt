@@ -100,6 +100,8 @@ internal object EcarxHudBridge {
     // one capture of the 0x5204 payload plus the ILaneInfo method list is enough to map it.
     private var laneFrames = 0
     private var laneHex: String? = null
+    /** Last maneuver type that fell back to the straight arrow, for the next report. */
+    private var lastDefaultArrowType: Int? = null
     private var laneMethodNames: String? = null
 
     /**
@@ -355,8 +357,7 @@ internal object EcarxHudBridge {
             // has no mapped shape, nothing is written here, so the cluster keeps the navigation
             // arrow it already derives from updateNavigationInfo instead of a counter value that
             // has no meaning on this firmware.
-            val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
-            if (bitmap != null) EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+            EcarxDimApi.updateTurnByTurnArrow(naviRef, turnArrowBitmap(maneuver.type, maneuver.drivingSide))
         }
 
         lastPushed = guidance
@@ -426,7 +427,7 @@ internal object EcarxHudBridge {
      *
      * Returns null for an unrecognised maneuver so the caller falls back to the int overload.
      */
-    private fun turnArrowBitmap(type: Int, drivingSide: Int): android.graphics.Bitmap? {
+    private fun turnArrowBitmap(type: Int, drivingSide: Int): android.graphics.Bitmap {
         val kind = when (type) {
             1, 20 -> ArrowKind.LEFT
             2, 21 -> ArrowKind.RIGHT
@@ -437,7 +438,14 @@ internal object EcarxHudBridge {
             4, 18, 19, 26 -> if (drivingSide == 1) ArrowKind.U_TURN_RIGHT else ArrowKind.U_TURN_LEFT
             6, 7, in 28..46 -> ArrowKind.ROUNDABOUT
             10, 12, 24, 25, 27 -> ArrowKind.DESTINATION
-            else -> return null
+            3, 5, 8, 9, 11, 51 -> ArrowKind.STRAIGHT
+            else -> {
+                if (type != lastDefaultArrowType) {
+                    lastDefaultArrowType = type
+                    Log.i(TAG, "turn arrow default type=" + type + " side=" + drivingSide)
+                }
+                ArrowKind.STRAIGHT
+            }
         }
         val size = 128
         val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
@@ -457,7 +465,7 @@ internal object EcarxHudBridge {
 
     private enum class ArrowKind {
         LEFT, RIGHT, SHARP_LEFT, SHARP_RIGHT, SLIGHT_LEFT, SLIGHT_RIGHT,
-        U_TURN_LEFT, U_TURN_RIGHT, ROUNDABOUT, DESTINATION,
+        U_TURN_LEFT, U_TURN_RIGHT, ROUNDABOUT, DESTINATION, STRAIGHT,
     }
 
     /** Builds the arrow outline for [kind] around [center], radius [r]. */
@@ -543,6 +551,14 @@ internal object EcarxHudBridge {
                 path.moveTo(c, c - r * 0.35f)
                 path.lineTo(c, c - r * 0.6f)
             }
+            ArrowKind.STRAIGHT -> {
+                path.moveTo(c, c + r)
+                path.lineTo(c, c - r)
+                path.moveTo(c, c - r)
+                path.lineTo(c - r * 0.45f, c - r * 0.6f)
+                path.moveTo(c, c - r)
+                path.lineTo(c + r * 0.45f, c - r * 0.6f)
+            }
         }
         return path
     }
@@ -570,6 +586,7 @@ internal object EcarxHudBridge {
             append(" laneBytes=").append(laneHex?.length?.div(2) ?: 0)
             append(" laneHex=").append(laneHex ?: "none")
             append(" laneMethods=").append(laneMethods())
+            append(" lastDefaultArrowType=").append(lastDefaultArrowType ?: "none")
             // The only read-back the API offers. Uninterpreted on purpose — it stays -1 while the
             // cluster mirrors (probe v3/v4), so it is printed for correlation, never acted on.
             dim?.let { append(" showPresentationOption=").append(EcarxDimApi.showPresentationOption(it)) }
