@@ -1,3 +1,9 @@
+# DiPlay 0.3.6 — 2026-10-19
+
+- Replace the simplified 0x5204 parser with the exact iAP2 contract from the luka-dev MIB2Q RGI source: top-level 0x0001 index, 0x0002 LaneInformations, 0x0003 description; nested 0x0000 position, 0x0001 status, 0x0002 angles, 0x0003 highlighted angle.
+- Store up to 8 lanes with position, status, primary direction, full angle vector and highlight flag; parse 0x5201 lane showing/total/current-index fields.
+- Log lane event index, showing/total, completeness, description, per-lane data and raw TLV dump for on-car comparison.
+
 # DiPlay 0.3.5 — 2026-10-19
 
 - Dump every 0x5204 TLV as type:hex in the log and diagnostic report, alongside the parsed highlight/lane values.

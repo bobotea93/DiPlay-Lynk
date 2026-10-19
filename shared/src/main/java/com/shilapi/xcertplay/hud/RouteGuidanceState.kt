@@ -15,8 +15,32 @@ internal data class AppleManeuver(
     val remainingSeconds: Long? = null,
     val remainingMeters: Long? = null,
     val arrivalEpochSeconds: Long? = null,
-    val laneHighlight: Int = -1,
-    val lanes: List<Int> = emptyList(),
+    val laneGuidanceIndex: Int = -1,
+    val laneGuidanceShowing: Int = 0,
+    val laneGuidanceTotal: Int = 0,
+    val laneGuidanceDescription: String = "",
+    val laneComplete: Boolean = false,
+    val lanes: List<LaneInfo> = emptyList(),
+)
+
+/** One lane from Apple's 0x5204 LaneInformations container. */
+internal data class LaneInfo(
+    val position: Int,
+    val status: Int,
+    val direction: Int,
+    val angles: List<Int>,
+    val highlighted: Boolean,
+)
+
+/** Raw 0x5204 state for diagnostics, independent of the current maneuver cache. */
+internal data class LaneSnapshot(
+    val eventIndex: Int,
+    val showing: Int,
+    val total: Int,
+    val description: String,
+    val complete: Boolean,
+    val lanes: List<LaneInfo>,
+    val tlvDump: String,
 )
 
 internal enum class RouteGuidanceChange {
@@ -26,10 +50,10 @@ internal enum class RouteGuidanceChange {
 }
 
 /**
- * Decodes the iAP2 route-guidance subset (0x5201/0x5202) that every CarPlay output needs.
+ * Decodes the iAP2 route-guidance subset (0x5201/0x5202/0x5204) that every CarPlay output needs.
  *
- * This is vendor-neutral: it only turns Apple's frames into [AppleManeuver], and it is shared by
- * the ECARX cluster output and by the widget-facing glance so both agree on what the next turn is.
+ * This is vendor-neutral: it only turns Apple's frames into [AppleManeuver] and [LaneSnapshot],
+ * and it is shared by the ECARX cluster output and by the widget-facing glance.
  */
 internal class RouteGuidanceState(
     private val nanoTime: () -> Long = System::nanoTime,
@@ -52,8 +76,12 @@ internal class RouteGuidanceState(
     private var arrivalEpochSeconds: Long? = null
     private var remainingSeconds: Long? = null
     private var remainingMeters: Long? = null
-    private var laneHighlight = -1
-    private var lanes: List<Int> = emptyList()
+    private var laneGuidanceIndex = -1
+    private var laneGuidanceShowing = 0
+    private var laneGuidanceTotal = 0
+    private var laneGuidanceDescription = ""
+    private var laneComplete = false
+    private var lanes: List<LaneInfo> = emptyList()
     private var laneTlvDump = ""
     private var emptyListSinceNs: Long? = null
     private var lastRouteUpdateNs: Long? = null
@@ -74,7 +102,8 @@ internal class RouteGuidanceState(
         return AppleManeuver(
             distanceMeters, maneuver.type, maneuver.drivingSide,
             roadFor(maneuver), remainingSeconds, remainingMeters, arrivalEpochSeconds,
-            laneHighlight, lanes,
+            laneGuidanceIndex, laneGuidanceShowing, laneGuidanceTotal,
+            laneGuidanceDescription, laneComplete, lanes,
         )
     }
 
@@ -87,7 +116,11 @@ internal class RouteGuidanceState(
         arrivalEpochSeconds = null
         remainingSeconds = null
         remainingMeters = null
-        laneHighlight = -1
+        laneGuidanceIndex = -1
+        laneGuidanceShowing = 0
+        laneGuidanceTotal = 0
+        laneGuidanceDescription = ""
+        laneComplete = false
         lanes = emptyList()
         laneTlvDump = ""
         emptyListSinceNs = null
@@ -108,11 +141,11 @@ internal class RouteGuidanceState(
     // The road the driver turns onto is what the next instruction is about; fall back to the current one.
     private fun roadFor(maneuver: Maneuver): String = maneuver.afterRoad.ifEmpty { currentRoad }
 
-    /** Raw lane-guidance state for diagnostics, even when no maneuver is active. */
-    fun laneSnapshot(): Pair<Int, List<Int>> = laneHighlight to lanes
-
-    /** All 0x5204 TLVs as type:hex, for matching against the MIB2 lane field model. */
-    fun laneTlvDump(): String = laneTlvDump
+    /** Raw lane data for diagnostics, even when no maneuver is active. */
+    fun laneSnapshot(): LaneSnapshot = LaneSnapshot(
+        laneGuidanceIndex, laneGuidanceShowing, laneGuidanceTotal,
+        laneGuidanceDescription, laneComplete, lanes, laneTlvDump,
+    )
 
     private fun parseRouteUpdate(data: ByteArray): RouteGuidanceChange {
         // A teardown NoRouteSet is not fresh guidance. Do not let repeated teardown frames
@@ -120,7 +153,7 @@ internal class RouteGuidanceState(
         if (keepAcrossNoRoute) {
             var noRoute = false
             forEachTlv(data) { type, value, valueLength ->
-                if (type == 0x01 && valueLength >= 1) noRoute = data[value] == 0.toByte()
+                if (type == 0x0001 && valueLength >= 1) noRoute = data[value] == 0.toByte()
             }
             if (noRoute) return RouteGuidanceChange.NONE
         }
@@ -131,18 +164,21 @@ internal class RouteGuidanceState(
         var listPresent = false
         forEachTlv(data) { type, value, valueLength ->
             when {
-                type == 0x01 && valueLength >= 1 -> state = data[value].toInt() and 0xff
-                type == 0x03 -> currentRoad = utf8(data, value, valueLength)
-                type == 0x05 && valueLength >= 8 -> arrivalEpochSeconds = u64(data, value).takeIf { it > 0 }
-                type == 0x06 && valueLength >= 8 -> remainingSeconds = u64(data, value).takeIf { it >= 0 }
-                type == 0x07 && valueLength >= 4 -> remainingMeters = u32(data, value)
-                type == 0x0a && valueLength >= 4 -> {
+                type == 0x0001 && valueLength >= 1 -> state = data[value].toInt() and 0xff
+                type == 0x0003 -> currentRoad = utf8(data, value, valueLength)
+                type == 0x0005 && valueLength >= 8 -> arrivalEpochSeconds = u64(data, value).takeIf { it > 0 }
+                type == 0x0006 && valueLength >= 8 -> remainingSeconds = u64(data, value).takeIf { it >= 0 }
+                type == 0x0007 && valueLength >= 4 -> remainingMeters = u32(data, value)
+                type == 0x000A && valueLength >= 4 -> {
                     distance = u32(data, value).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 }
-                type == 0x0d -> {
+                type == 0x000D -> {
                     listPresent = true
                     if (valueLength >= 2) firstManeuver = u16(data, value)
                 }
+                type == 0x0010 && valueLength >= 2 -> laneGuidanceIndex = u16(data, value)
+                type == 0x0011 && valueLength >= 2 -> laneGuidanceTotal = u16(data, value)
+                type == 0x0012 && valueLength >= 1 -> laneGuidanceShowing = data[value].toInt() and 0xff
             }
         }
 
@@ -175,37 +211,127 @@ internal class RouteGuidanceState(
         var afterRoad = ""
         forEachTlv(data) { id, value, valueLength ->
             when {
-                id == 0x01 && valueLength >= 2 -> index = u16(data, value)
-                id == 0x03 && valueLength >= 1 -> type = data[value].toInt() and 0xff
-                id == 0x04 -> afterRoad = utf8(data, value, valueLength)
-                id == 0x08 && valueLength >= 1 -> drivingSide = data[value].toInt() and 0xff
+                id == 0x0001 && valueLength >= 2 -> index = u16(data, value)
+                id == 0x0003 && valueLength >= 1 -> type = data[value].toInt() and 0xff
+                id == 0x0004 -> afterRoad = utf8(data, value, valueLength)
+                id == 0x0008 && valueLength >= 1 -> drivingSide = data[value].toInt() and 0xff
             }
         }
         if (index != null && type != null) maneuvers[index!!] = Maneuver(type!!, drivingSide, afterRoad)
         return if (current() != null) RouteGuidanceChange.GUIDANCE else RouteGuidanceChange.NONE
     }
 
-    /** Apple 0x5204 LaneGuidanceInfoUpdate: 0x01 highlighted lane, 0x02 one lane, 0x03 lane array. */
+    /**
+     * Apple 0x5204 LaneGuidanceInformation.
+     *
+     * Top-level TLVs: 0x0000 component ID, 0x0001 lane-guidance index, 0x0002 LaneInformations,
+     * 0x0003 lane-guidance description. LaneInformations contains nested 0x0000 position/index,
+     * 0x0001 status, 0x0002 repeated angles, 0x0003 highlighted angle.
+     */
     private fun parseLaneUpdate(data: ByteArray): RouteGuidanceChange {
-        var highlight = -1
-        val next = mutableListOf<Int>()
+        var eventIndex = -1
+        var description = ""
+        var complete = true
+        val parsed = mutableListOf<LaneInfo>()
         val dump = mutableListOf<String>()
         forEachTlv(data) { id, value, valueLength ->
-            dump += "0x%02x:%s".format(id, hex(data, value, valueLength))
-            when {
-                id == 0x01 && valueLength >= 1 -> highlight = data[value].toInt() and 0xff
-                id == 0x02 && valueLength >= 1 -> next += data[value].toInt() and 0xff
-                id == 0x03 -> {
-                    for (offset in 0 until valueLength) {
-                        next += data[value + offset].toInt() and 0xff
-                    }
+            dump += "0x%04x:%s".format(id, hex(data, value, valueLength))
+            when (id) {
+                0x0001 -> eventIndex = when {
+                    valueLength >= 2 -> u16(data, value)
+                    valueLength >= 1 -> data[value].toInt() and 0xff
+                    else -> -1
                 }
+                0x0002 -> {
+                    val (laneList, laneComplete) = parseLaneInformations(data, value, valueLength)
+                    parsed += laneList
+                    if (!laneComplete) complete = false
+                }
+                0x0003 -> description = utf8(data, value, valueLength)
             }
         }
-        lanes = next.take(8)
-        laneHighlight = if (lanes.isEmpty()) -1 else highlight.coerceIn(-1, lanes.lastIndex)
+        // A 0x5204 without a lane-guidance index is not usable; iOS always sends one.
+        if (eventIndex < 0) return RouteGuidanceChange.NONE
+        laneGuidanceIndex = eventIndex
+        laneGuidanceDescription = description
+        lanes = parsed.take(MAX_LANE_GUIDANCE)
+        laneComplete = complete && parsed.size <= MAX_LANE_GUIDANCE
         laneTlvDump = dump.joinToString(",").take(1024)
         return if (current() != null) RouteGuidanceChange.GUIDANCE else RouteGuidanceChange.NONE
+    }
+
+    private fun parseLaneInformations(data: ByteArray, offset: Int, length: Int): Pair<List<LaneInfo>, Boolean> {
+        val end = offset + length
+        val result = mutableListOf<LaneInfo>()
+        var complete = true
+        var position = -1
+        var status = -1
+        val angles = mutableListOf<Int>()
+        var highlight: Int? = null
+        var highlighted = false
+
+        fun flush() {
+            if (position >= 0 || status >= 0 || angles.isNotEmpty() || highlighted) {
+                val direction = highlight ?: angles.firstOrNull() ?: UNKNOWN_LANE_ANGLE
+                result += LaneInfo(position, status, direction, angles.toList(), highlighted)
+            }
+            position = -1
+            status = -1
+            angles.clear()
+            highlight = null
+            highlighted = false
+        }
+
+        var cursor = offset
+        while (cursor + 4 <= end) {
+            val subLength = u16(data, cursor)
+            val subId = u16(data, cursor + 2)
+            if (subLength < 4 || cursor + subLength > end) {
+                complete = false
+                break
+            }
+            val value = cursor + 4
+            val valueLength = subLength - 4
+            when (subId) {
+                0x0000 -> {
+                    flush()
+                    position = when {
+                        valueLength >= 2 -> u16(data, value)
+                        valueLength >= 1 -> data[value].toInt() and 0xff
+                        else -> result.size
+                    }
+                }
+                0x0001 -> {
+                    if (valueLength >= 1) status = data[value].toInt() and 0xff else complete = false
+                }
+                0x0002 -> {
+                    var index = 0
+                    while (index < valueLength && angles.size < MAX_LANE_ANGLES) {
+                        val angle = if (index + 1 < valueLength) {
+                            u16(data, value + index).toShort().toInt()
+                        } else {
+                            data[value + index].toInt()
+                        }
+                        angles += angle
+                        index += if (index + 1 < valueLength) 2 else 1
+                    }
+                    if (index < valueLength) complete = false
+                }
+                0x0003 -> {
+                    highlight = when {
+                        valueLength >= 2 -> u16(data, value).toShort().toInt()
+                        valueLength >= 1 -> data[value].toInt()
+                        else -> null
+                    }
+                    highlighted = highlight != null
+                }
+            }
+            cursor += subLength
+        }
+        flush()
+        if (cursor != end) complete = false
+        if (result.any { it.position < 0 || it.status < 0 }) complete = false
+        return result to complete
     }
 
     private fun hex(data: ByteArray, offset: Int, length: Int): String = buildString {
@@ -257,5 +383,8 @@ internal class RouteGuidanceState(
         private const val TLV_HEADER_BYTES = 4
         private const val STALE_ROUTE_NS = 30_000_000_000L
         private const val EMPTY_LIST_HIDE_NS = 3_000_000_000L
+        private const val MAX_LANE_GUIDANCE = 8
+        private const val MAX_LANE_ANGLES = 16
+        private const val UNKNOWN_LANE_ANGLE = 1000
     }
 }

@@ -213,9 +213,14 @@ internal object EcarxHudBridge {
         }
         val change = route.accept(frame.messageId, frame.payload)
         if (frame.messageId == LANE_GUIDANCE_UPDATE) {
-            val (highlight, lanes) = route.laneSnapshot()
-            Log.i(TAG, "lane guidance parsed highlight=" + highlight + " lanes=" + lanes.joinToString(",") +
-                " tlvs=" + route.laneTlvDump())
+            val lane = route.laneSnapshot()
+            val laneText = lane.lanes.joinToString(";") { item ->
+                "pos=" + item.position + " status=" + item.status + " dir=" + item.direction +
+                    " angles=" + item.angles.joinToString("/") + " hl=" + item.highlighted
+            }
+            Log.i(TAG, "lane guidance index=" + lane.eventIndex + " showing=" + lane.showing +
+                " total=" + lane.total + " complete=" + lane.complete +
+                " desc=\"" + lane.description + "\" lanes=" + laneText + " tlvs=" + lane.tlvDump)
         }
         when (change) {
             RouteGuidanceChange.GUIDANCE -> pushLocked(force = false)
@@ -599,9 +604,17 @@ internal object EcarxHudBridge {
             append(" laneMethods=").append(laneMethods())
             append(" lastUnmappedArrowType=").append(lastUnmappedArrowType ?: "none")
             val lane = route.laneSnapshot()
-            append(" laneParsedHighlight=").append(lane.first)
-            append(" laneParsedValues=").append(lane.second.joinToString(","))
-            append(" laneTlvDump=").append(route.laneTlvDump())
+            val laneText = lane.lanes.joinToString(";") { item ->
+                "pos=" + item.position + ",status=" + item.status + ",dir=" + item.direction +
+                    ",angles=" + item.angles.joinToString("/") + ",hl=" + item.highlighted
+            }
+            append(" laneEvent=").append(lane.eventIndex)
+            append(" laneShowing=").append(lane.showing)
+            append(" laneTotal=").append(lane.total)
+            append(" laneComplete=").append(lane.complete)
+            append(" laneDesc=").append(lane.description)
+            append(" laneLanes=").append(laneText)
+            append(" laneTlvDump=").append(lane.tlvDump)
             // The only read-back the API offers. Uninterpreted on purpose — it stays -1 while the
             // cluster mirrors (probe v3/v4), so it is printed for correlation, never acted on.
             dim?.let { append(" showPresentationOption=").append(EcarxDimApi.showPresentationOption(it)) }
