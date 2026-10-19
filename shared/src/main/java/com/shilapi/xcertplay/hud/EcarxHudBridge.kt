@@ -114,7 +114,11 @@ internal object EcarxHudBridge {
         laneMethodNames?.let { return it }
         val names = runCatching {
             Class.forName(EcarxCapabilities.LANE_INFO).declaredMethods
-                .map { it.name }.sorted().joinToString(",")
+                .sortedBy { it.name }
+                .joinToString(",") { method ->
+                    method.name + "(" + method.parameterTypes.joinToString(",") { it.simpleName } +
+                        "):" + method.returnType.simpleName
+                }
         }.getOrElse { "missing:" + it.javaClass.simpleName }
         laneMethodNames = names
         return names

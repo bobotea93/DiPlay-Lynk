@@ -1,3 +1,8 @@
+# DiPlay 0.3.3 — 2026-10-19
+
+- Subscribe to Apple's 0x5204 LaneGuidanceInfoUpdate so lane-guidance frames reach the ECARX bridge for the first time.
+- Report full ILaneInfo method signatures and the first raw lane payload in the diagnostic report; lane display mapping follows the captured contract.
+
 # DiPlay 0.3.2 — 2026-10-19
 
 - Draw a straight arrow for straight/follow-road/ramp maneuvers (Apple types 3, 5, 8, 9, 11, 51) and for any unmapped maneuver type, so the ECARX cluster never goes completely blank.
