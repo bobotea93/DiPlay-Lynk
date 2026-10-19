@@ -715,6 +715,10 @@
     <string name="settings_interface_size_auto">Автоматично</string>
     <string name="settings_interface_size_hint">Розмір тексту й елементів керування на екранах DiPlay. В автоматичному режимі вони збільшуються на великих екранах із низькою щільністю. CarPlay не змінюється.</string>
     <string name="update_check">Перевірити оновлення</string>
+    <string name="update_channel">Канал оновлень</string>
+    <string name="update_channel_github">GitHub напряму</string>
+    <string name="update_channel_mirror1">Дзеркало прискорення (gh-proxy.com)</string>
+    <string name="update_channel_mirror2">Дзеркало прискорення (ghproxy.net)</string>
     <string name="update_checking">Перевірка…</string>
     <string name="update_up_to_date">У вас вже найновіша версія</string>
     <string name="update_download">Завантажити оновлення</string>

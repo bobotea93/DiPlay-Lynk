@@ -7,15 +7,32 @@ internal object UpdateReleaseLookup {
     fun latest(
         installedVersion: String,
         userAgent: String,
+        channel: Int = UpdateChannels.DEFAULT,
         openConnection: (URL) -> URLConnection = { it.openConnection() },
     ): UpdateRelease? {
-        val json = UpdateClient.fetchText(
-            UpdateClient.RELEASES_URL,
-            "application/vnd.github+json",
-            userAgent,
-            openConnection,
-        )
-        val release = UpdateCatalog.parse(json) ?: return null
-        return release.takeIf { UpdateVersion.isNewer(it.tagName, installedVersion) }
+        var lastFailure: Exception? = null
+        var checkedSuccessfully = false
+        for (source in UpdateChannels.sources(channel)) {
+            try {
+                val json = UpdateClient.fetchText(
+                    source.releasesUrl,
+                    "application/vnd.github+json",
+                    userAgent,
+                    openConnection,
+                )
+                checkedSuccessfully = true
+                val release = UpdateCatalog.parse(json)
+                if (release != null && UpdateVersion.isNewer(release.tagName, installedVersion)) {
+                    return release.copy(
+                        apkUrl = source.assetUrl(release.apkUrl),
+                        checksumsUrl = source.assetUrl(release.checksumsUrl),
+                    )
+                }
+            } catch (failure: Exception) {
+                lastFailure = failure
+            }
+        }
+        if (!checkedSuccessfully) throw lastFailure ?: IllegalStateException("No update source available")
+        return null
     }
 }

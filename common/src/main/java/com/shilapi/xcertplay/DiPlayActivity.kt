@@ -2441,6 +2441,15 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             toggle(card, getString(R.string.settings_background_update_checks),
                 getString(R.string.settings_background_update_checks_description),
                 UpdateAvailability.backgroundChecksEnabled(this)) { UpdateAvailability.saveBackgroundChecksEnabled(this, it) }
+            val channels = listOf(
+                getString(R.string.update_channel_github),
+                getString(R.string.update_channel_mirror1),
+                getString(R.string.update_channel_mirror2),
+            )
+            choice(card, getString(R.string.update_channel), channels,
+                AirPlayPersistence.loadUpdateChannel(this), reconnects = false) { index ->
+                AirPlayPersistence.saveUpdateChannel(this, index)
+            }
         }
         section(content, getString(R.string.backup_title)) { card ->
             card.addView(button(getString(R.string.backup_open), false) { openBackup() }, matchButton(0, 60))
@@ -2565,9 +2574,10 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         val container = column().apply { setPadding(0, dp(12), 0, 0) }
         updateMessage?.let { container.addView(label(it, 14, MUTED)) }
         when (updateStage) {
-            UpdateStage.IDLE, UpdateStage.FAILED ->
+            UpdateStage.IDLE, UpdateStage.FAILED -> {
                 container.addView(button(getString(R.string.update_check), false) { checkForUpdates() },
                     matchButton(if (updateMessage == null) 0 else 10, 60))
+            }
             UpdateStage.CHECKING -> container.addView(label(getString(R.string.update_checking), 14, MUTED))
             UpdateStage.AVAILABLE -> container.addView(
                 button(getString(R.string.update_download), true) { downloadUpdate() },
@@ -2619,9 +2629,12 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         }, "diplay-update-check").start()
     }
 
-    private fun latestRelease(): UpdateRelease? {
-        return UpdateReleaseLookup.latest(version(), userAgent())
-    }
+    private fun latestRelease(): UpdateRelease? =
+        UpdateReleaseLookup.latest(
+            version(),
+            userAgent(),
+            AirPlayPersistence.loadUpdateChannel(this),
+        )
 
     private fun openAvailableUpdate(release: UpdateRelease) {
         updateRelease = release

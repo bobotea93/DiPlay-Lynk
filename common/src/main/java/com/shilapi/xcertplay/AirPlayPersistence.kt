@@ -19,6 +19,7 @@ import com.shilapi.xcertplay.orchestration.MfiTarget
 import com.shilapi.xcertplay.orchestration.WirelessHotspotMode
 import com.shilapi.xcertplay.network.WifiP2pChannels
 import com.shilapi.xcertplay.transport.LockdownPairRecord
+import com.shilapi.xcertplay.update.UpdateChannels
 import java.io.File
 
 /** SharedPreferences persistence for the accessory identity and paired controllers. */
@@ -173,6 +174,7 @@ object AirPlayPersistence {
     private const val KEY_CLUSTER_SMALL_WINDOW_CARD_X = "cluster_small_window_card_x"
     private const val KEY_CLUSTER_SMALL_WINDOW_CARD_Y = "cluster_small_window_card_y"
     private const val KEY_CLUSTER_SMALL_WINDOW_CARD_OPACITY = "cluster_small_window_card_opacity_percent"
+    private const val KEY_UPDATE_CHANNEL = "update_channel"
 
     fun loadDisplayScaleTenths(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -184,6 +186,17 @@ object AirPlayPersistence {
     fun saveDisplayScaleTenths(context: Context, tenths: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putInt(KEY_DISPLAY_SCALE_TENTHS, CarPlayDisplayScale.sanitize(tenths))
+            .apply()
+    }
+
+    fun loadUpdateChannel(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_UPDATE_CHANNEL, UpdateChannels.DEFAULT)
+            .coerceIn(UpdateChannels.GITHUB, UpdateChannels.MIRROR_GH_PROXY_NET)
+
+    fun saveUpdateChannel(context: Context, channel: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_UPDATE_CHANNEL, channel.coerceIn(UpdateChannels.GITHUB, UpdateChannels.MIRROR_GH_PROXY_NET))
             .apply()
     }
 

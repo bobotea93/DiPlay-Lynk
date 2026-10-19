@@ -843,6 +843,10 @@
     <string name="settings_interface_size_auto">Automatica</string>
     <string name="settings_interface_size_hint">Dimensione di testo e controlli sulle schermate di DiPlay. Automatica li ingrandisce sugli schermi grandi con bassa densità. CarPlay non è interessato.</string>
     <string name="update_check">Controlla aggiornamenti</string>
+    <string name="update_channel">Canale di aggiornamento</string>
+    <string name="update_channel_github">GitHub diretto</string>
+    <string name="update_channel_mirror1">Mirror di accelerazione (gh-proxy.com)</string>
+    <string name="update_channel_mirror2">Mirror di accelerazione (ghproxy.net)</string>
     <string name="update_checking">Verifica in corso…</string>
     <string name="update_up_to_date">Sei aggiornato</string>
     <string name="update_download">Scarica aggiornamento</string>

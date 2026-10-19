@@ -703,6 +703,10 @@
     <string name="settings_interface_size_auto">تلقائي</string>
     <string name="settings_interface_size_hint">حجم النص وعناصر التحكم في شاشات DiPlay. يكبّرها الوضع التلقائي على الشاشات الكبيرة منخفضة الكثافة. لا يتأثر CarPlay.</string>
     <string name="update_check">البحث عن تحديثات</string>
+    <string name="update_channel">قناة التحديث</string>
+    <string name="update_channel_github">GitHub مباشر</string>
+    <string name="update_channel_mirror1">مرآة تسريع (gh-proxy.com)</string>
+    <string name="update_channel_mirror2">مرآة تسريع (ghproxy.net)</string>
     <string name="update_checking">جارٍ البحث…</string>
     <string name="update_up_to_date">لديك آخر إصدار</string>
     <string name="update_download">تنزيل التحديث</string>

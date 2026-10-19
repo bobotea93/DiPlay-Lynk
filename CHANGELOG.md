@@ -1,3 +1,9 @@
+# DiPlay 0.3.1 — 2026-10-19
+
+- Add selectable update channels for the Lynk port: GitHub direct, `gh-proxy.com`, and `ghproxy.net`, with automatic fallback between them. The same channel is used for release metadata and APK downloads.
+- Keep SHA-256 verification and the daily background update check; the background worker now reads the selected channel.
+- Bump the app to 0.3.1 (versionCode 42) so the in-app updater can see this release.
+
 # DiPlay 0.2.21 — 2026-10-17
 
 - Fix the 0.2.20 music lag by counting the music still waiting to be decoded in the clock adjustment, and bring music back after an interruption when the iPhone plays again (#814, #804).

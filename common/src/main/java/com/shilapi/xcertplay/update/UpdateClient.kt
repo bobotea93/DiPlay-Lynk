@@ -9,8 +9,8 @@ import java.net.URL
 import java.net.URLConnection
 
 internal object UpdateClient {
-    internal const val RELEASES_URL =
-        "https://api.github.com/repos/kakamatong/DiPlay-Lynk/releases?per_page=3"
+    internal const val GITHUB_RELEASES_URL =
+        "https://api.github.com/repos/kakamatong/DiPlay-Lynk/releases?per_page=5"
     private const val CONNECT_TIMEOUT_MILLIS = 10_000
     private const val READ_TIMEOUT_MILLIS = 30_000
     private const val MAXIMUM_TEXT_BYTES = 4 * 1024 * 1024
@@ -42,8 +42,18 @@ internal object UpdateClient {
     }
 
     internal fun download(url: String, destination: File, onProgress: (Long, Long?) -> Unit) {
+        download(url, destination, onProgress) { it.openConnection() }
+    }
+
+    internal fun download(
+        url: String,
+        destination: File,
+        onProgress: (Long, Long?) -> Unit,
+        openConnection: (URL) -> URLConnection,
+    ) {
         destination.parentFile?.mkdirs()
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = openConnection(URL(url)) as? HttpURLConnection
+            ?: throw IOException("Download from $url did not open an HTTP connection")
         try {
             connection.connectTimeout = CONNECT_TIMEOUT_MILLIS
             connection.readTimeout = READ_TIMEOUT_MILLIS
