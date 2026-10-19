@@ -45,6 +45,9 @@ internal object EcarxHudBridge {
      * unchanged, so the two states are the only ones recovered; 0 is used for idle on teardown.
      */
     private const val NAVI_STATUS_ACTIVE = 1
+
+    /** Apple's LaneGuidanceInfoUpdate: per-lane direction + highlight state. */
+    private const val LANE_GUIDANCE_UPDATE = 0x5204
     private const val NAVI_STATUS_IDLE = 0
 
     /**
@@ -93,12 +96,28 @@ internal object EcarxHudBridge {
     private var ticksSincePush = 0
     private var guidanceActive = false
 
+    // Lane-guidance probe. The cluster draws every lane bright because we send no lane data yet;
+    // one capture of the 0x5204 payload plus the ILaneInfo method list is enough to map it.
+    private var laneFrames = 0
+    private var laneHex: String? = null
+    private var laneMethodNames: String? = null
+
     /**
      * A screen appearing or disappearing is the closest thing to "the car was just started" that a
      * third-party app can observe, so it cancels the backoff instead of making the cluster wait
      * for the next keepalive. On this head unit the cluster screen is not in `getDisplays()` at all
      * (probe v4), so this is a hint, never the mechanism — the keepalive is.
      */
+    private fun laneMethods(): String {
+        laneMethodNames?.let { return it }
+        val names = runCatching {
+            Class.forName(EcarxCapabilities.LANE_INFO).declaredMethods
+                .map { it.name }.sorted().joinToString(",")
+        }.getOrElse { "missing:" + it.javaClass.simpleName }
+        laneMethodNames = names
+        return names
+    }
+
     private val displayWatch = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) = nudgeProjection("display $displayId added")
         override fun onDisplayRemoved(displayId: Int) = nudgeProjection("display $displayId removed")
@@ -179,6 +198,13 @@ internal object EcarxHudBridge {
 
     fun onFrame(frame: Iap2Frame) = synchronized(lock) {
         if (!available) return@synchronized
+        if (frame.messageId == LANE_GUIDANCE_UPDATE) {
+            laneFrames += 1
+            if (laneHex == null) {
+                laneHex = frame.payload.take(128).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+                Log.i(TAG, "lane guidance frame bytes=${frame.payload.size} head=${laneHex}")
+            }
+        }
         when (route.accept(frame.messageId, frame.payload)) {
             RouteGuidanceChange.GUIDANCE -> pushLocked(force = false)
             RouteGuidanceChange.CLEAR -> if (lastPushed != null) endLocked()
@@ -540,6 +566,10 @@ internal object EcarxHudBridge {
             append(" turnId=").append(turnId)
             append(" active=").append(lastPushed != null)
             append(" status=").append(if (lastPushed != null) NAVI_STATUS_ACTIVE else NAVI_STATUS_IDLE)
+            append(" laneFrames=").append(laneFrames)
+            append(" laneBytes=").append(laneHex?.length?.div(2) ?: 0)
+            append(" laneHex=").append(laneHex ?: "none")
+            append(" laneMethods=").append(laneMethods())
             // The only read-back the API offers. Uninterpreted on purpose — it stays -1 while the
             // cluster mirrors (probe v3/v4), so it is printed for correlation, never acted on.
             dim?.let { append(" showPresentationOption=").append(EcarxDimApi.showPresentationOption(it)) }

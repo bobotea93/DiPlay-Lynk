@@ -95,6 +95,7 @@ object EcarxIntegration {
             appendLine("available=" + EcarxCapabilities.available(app))
             appendLine(EcarxCapabilities.describe(app))
             appendLine("dimNaviEnabled=" + dim + " projectionSwitch=" + projection)
+            appendLine(runCatching { EcarxOutputSettings.diagnosticReport(app) }.getOrElse { "diagnostics unavailable" })
         }
     }
 
