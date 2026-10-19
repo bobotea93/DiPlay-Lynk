@@ -323,10 +323,14 @@ internal object EcarxHudBridge {
         if (EcarxOutputSettings.turnArrowExperimental(app)) {
             // The int overload has no recovered code table, so draw the arrow locally and push it
             // through the (Bitmap) overload instead — the one code-table-free channel the device
-            // exposes (see 亿咖通DIM-真机契约转储.md). The int counter stays as a fallback.
+            // exposes (see 亿咖通DIM-真机契约转储.md).
+            //
+            // 路口箭头优先，缺省用导航箭头：only a drawn junction arrow is pushed. When the maneuver
+            // has no mapped shape, nothing is written here, so the cluster keeps the navigation
+            // arrow it already derives from updateNavigationInfo instead of a counter value that
+            // has no meaning on this firmware.
             val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
             if (bitmap != null) EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
-            else EcarxDimApi.updateTurnByTurnArrow(naviRef, guidance.turnId)
         }
 
         lastPushed = guidance
