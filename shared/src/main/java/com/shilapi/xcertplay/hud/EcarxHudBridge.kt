@@ -102,6 +102,10 @@ internal object EcarxHudBridge {
     private var laneHex: String? = null
     /** Last maneuver type with no deterministic arrow mapping, for the next report. */
     private var lastUnmappedArrowType: Int? = null
+    private var lastNaviPush = "none"
+    private var lastArrowPush = "none"
+    private var lastArrowType = "none"
+    private var lastArrowDirection = "none"
     private var laneMethodNames: String? = null
 
     /**
@@ -352,6 +356,7 @@ internal object EcarxHudBridge {
 
         // Order matches the toolkit: the aggregate payload first, then the discrete fields.
         val result = EcarxDimApi.updateNavigationInfo(naviRef, guidance)
+        lastNaviPush = if (result.ok) "ok" else "failed:" + result.reason
         if (!result.ok) {
             Log.w(TAG, "updateNavigationInfo failed: ${result.reason}")
             return
@@ -373,7 +378,14 @@ internal object EcarxHudBridge {
             // arrow it already derives from updateNavigationInfo instead of a counter value that
             // has no meaning on this firmware.
             val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
-            if (bitmap != null) EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+            lastArrowType = maneuver.type.toString()
+            lastArrowDirection = maneuver.drivingSide.toString()
+            if (bitmap != null) {
+                val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+                lastArrowPush = if (arrow.ok) "ok" else "failed:" + arrow.reason
+            } else {
+                lastArrowPush = "unmapped"
+            }
         }
 
         lastPushed = guidance
@@ -603,6 +615,10 @@ internal object EcarxHudBridge {
             append(" laneHex=").append(laneHex ?: "none")
             append(" laneMethods=").append(laneMethods())
             append(" lastUnmappedArrowType=").append(lastUnmappedArrowType ?: "none")
+            append(" lastNaviPush=").append(lastNaviPush)
+            append(" lastArrowPush=").append(lastArrowPush)
+            append(" lastArrowType=").append(lastArrowType)
+            append(" lastArrowDirection=").append(lastArrowDirection)
             val lane = route.laneSnapshot()
             val laneText = lane.lanes.joinToString(";") { item ->
                 "pos=" + item.position + ",status=" + item.status + ",dir=" + item.direction +

@@ -1,3 +1,8 @@
+# DiPlay 0.3.7 — 2026-10-19
+
+- Record the ECARX updateNavigationInfo and updateTurnByTurnArrow results in the diagnostic report (lastNaviPush, lastArrowPush, lastArrowType, lastArrowDirection).
+- No display behavior change; this build isolates whether the cluster rejects the bitmap arrow call or ignores it.
+
 # DiPlay 0.3.6 — 2026-10-19
 
 - Replace the simplified 0x5204 parser with the exact iAP2 contract from the luka-dev MIB2Q RGI source: top-level 0x0001 index, 0x0002 LaneInformations, 0x0003 description; nested 0x0000 position, 0x0001 status, 0x0002 angles, 0x0003 highlighted angle.

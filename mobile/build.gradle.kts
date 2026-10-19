@@ -17,8 +17,8 @@ android {
         applicationId = "com.kakamatong.diplay.lynk"
         minSdk = 24
         targetSdk = 37
-        versionCode = 47
-        versionName = "0.3.6"
+        versionCode = 48
+        versionName = "0.3.7"
 
     }
 
