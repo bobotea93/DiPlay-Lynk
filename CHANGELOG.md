@@ -1,3 +1,9 @@
+# DiPlay 0.3.11 — 2026-10-19
+
+- Diagnostic experiment: send AutoNavi (高德) turn-by-turn icon codes through the ECARX updateTurnByTurnArrow(int) overload instead of Apple maneuver types. Straight 16, slight right 17, slight left 18, left 19, right 20, sharp left 21, sharp right 22, u-turn 23/24, destination 3, roundabout 52.
+- Feed the same code into Guidance.turnId so the cluster's own arrow and the explicit arrow use one namespace.
+- Record lastArrowCode; lastArrowChannel is int-amap, or bitmap when the int overload is rejected and the locally drawn bitmap fallback runs.
+
 # DiPlay 0.3.10 — 2026-10-19
 
 - Diagnostic experiment: use the stock ECARX updateTurnByTurnArrow(int) overload with the real Apple maneuver type instead of the Bitmap overload.

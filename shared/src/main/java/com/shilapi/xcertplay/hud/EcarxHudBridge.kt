@@ -107,6 +107,7 @@ internal object EcarxHudBridge {
     private var lastArrowChannel = "none"
     private var lastArrowType = "none"
     private var lastArrowDirection = "none"
+    private var lastArrowCode = "none"
     private var lastGuidanceTurnId = "none"
     private var lastGuidanceDrivingDirection = "none"
     private var lastSvgLength = 0
@@ -386,13 +387,29 @@ internal object EcarxHudBridge {
             // has no mapped shape, nothing is written here, so the cluster keeps the navigation
             // arrow it already derives from updateNavigationInfo instead of a counter value that
             // has no meaning on this firmware.
-            // Experiment 0.3.10: use the stock ECARX int overload with the real maneuver type.
-            // Bitmap and SVG channels are kept for diagnostics, but only the int call is used here.
+            // Experiment 0.3.11: the int overload receives AutoNavi turn codes instead of Apple's
+            // maneuver type. Chinese head units share the AutoNavi icon table (straight 16, left
+            // 19, right 20 ...), which also explains why every value 0.3.10 sent was accepted but
+            // never drawn: the numbers were in the wrong namespace.
             lastArrowType = maneuver.type.toString()
             lastArrowDirection = maneuver.drivingSide.toString()
-            lastArrowChannel = "int"
-            val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, maneuver.type)
-            lastArrowPush = if (arrow.ok) "int-ok" else "int-failed:" + arrow.reason
+            val code = amapTurnCode(maneuver.type, maneuver.drivingSide)
+            lastArrowCode = code.toString()
+            lastArrowChannel = "int-amap"
+            val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
+            if (arrow.ok) {
+                lastArrowPush = "int-ok"
+            } else {
+                // The int overload is missing or rejected; the locally drawn bitmap is the one
+                // code-table-free channel and stays as the fallback.
+                lastArrowPush = "int-failed:" + arrow.reason
+                val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
+                if (bitmap != null) {
+                    val fallback = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+                    lastArrowChannel = "bitmap"
+                    lastArrowPush = if (fallback.ok) "bitmap-ok" else "bitmap-failed:" + fallback.reason
+                }
+            }
         }
 
         lastPushed = guidance
@@ -435,10 +452,9 @@ internal object EcarxHudBridge {
             turnId += 1
         }
         return EcarxDimApi.Guidance(
-            // Experiment 0.3.8: the cluster gets the real Apple maneuver type instead of a
-            // meaningless incrementing counter. This is a diagnostic attempt, not a recovered
-            // ECARX turn-code table.
-            turnId = maneuver.type,
+            // Experiment 0.3.11: the guidance payload also carries the AutoNavi code, so the
+            // cluster's own navigation arrow and the explicit int arrow agree on one namespace.
+            turnId = amapTurnCode(maneuver.type, maneuver.drivingSide),
             distanceToNextMeters = maneuver.distanceMeters.toLong(),
             distanceToDestinationMeters = maneuver.remainingMeters ?: -1L,
             etaEpochSeconds = maneuver.arrivalEpochSeconds ?: -1L,
@@ -477,6 +493,30 @@ internal object EcarxHudBridge {
         return "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
             "<g fill='none' stroke='#FFFFFF' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'>" +
             shape + "</g></svg>"
+    }
+
+    /**
+     * AutoNavi (高德) turn-by-turn icon codes, the table Chinese head units commonly use.
+     *
+     * Recovered from the FCE/Coagent cluster channel (DiPlay 0.2.18 `FceClusterIcons`), where the
+     * same numbers reach the cluster MCU: straight 16, slight right 17, slight left 18, left 19,
+     * right 20, sharp left 21, sharp right 22, u-turn left 23, u-turn right 24, destination 3,
+     * roundabout exits 1-10 = 42-51, roundabout 52, roundabout enter 53.
+     *
+     * 0.3.11 experiment: the ECARX int overload receives these instead of Apple's maneuver type.
+     * Unknown maneuvers fall back to straight (16) so the cluster always has a drawable code.
+     */
+    private fun amapTurnCode(type: Int, drivingSide: Int): Int = when (type) {
+        1, 20 -> 19
+        2, 21 -> 20
+        47 -> 21
+        48 -> 22
+        13, 22, 49, 52 -> 18
+        14, 23, 50, 53 -> 17
+        4, 18, 19, 26 -> if (drivingSide == 1) 24 else 23
+        6, 7, in 28..46 -> 52
+        10, 12, 24, 25, 27 -> 3
+        else -> 16
     }
 
     /**
@@ -652,6 +692,7 @@ internal object EcarxHudBridge {
             append(" lastArrowChannel=").append(lastArrowChannel)
             append(" lastArrowType=").append(lastArrowType)
             append(" lastArrowDirection=").append(lastArrowDirection)
+            append(" lastArrowCode=").append(lastArrowCode)
             append(" guidanceTurnId=").append(lastGuidanceTurnId)
             append(" guidanceDrivingDirection=").append(lastGuidanceDrivingDirection)
             append(" lastSvgLength=").append(lastSvgLength)

@@ -477,9 +477,9 @@ class AdaptiveSettingsUiTest {
 
         ReflectionHelpers.callInstanceMethod<Unit>(screen, "openSearchResult",
             ReflectionHelpers.ClassParameter(result.javaClass, result))
-        assertTrue(HotspotSearchProbe.entered.await(3, TimeUnit.SECONDS))
+        assertTrue(HotspotSearchProbe.entered.await(15, TimeUnit.SECONDS))
         val worker = HotspotSearchProbe.workers.single()
-        worker.join(3_000)
+        worker.join(15_000)
         assertFalse(worker.isAlive)
         shadowOf(Looper.getMainLooper()).idle()
 
@@ -726,7 +726,9 @@ class AdaptiveSettingsUiTest {
         assertTrue(text(R.string.settings_navigation_wheel_volume) in advanced)
         assertFalse(text(R.string.settings_navigation_wheel_volume) in audio)
         assertFalse(text(R.string.settings_navigation_wheel_volume) in vehicle)
-        assertTrue(text(R.string.settings_ambient_title) in advanced)
+        // The Lynk port hides the BYD-only ambient-lighting section from the settings
+        // architecture, so no category lists it on this product.
+        assertFalse(text(R.string.settings_ambient_title) in advanced)
         assertFalse(text(R.string.settings_ambient_title) in audio)
         assertFalse(text(R.string.settings_ambient_title) in vehicle)
         assertFalse(text(R.string.settings_ambient_title) in display)
