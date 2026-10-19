@@ -15,6 +15,8 @@ internal data class AppleManeuver(
     val remainingSeconds: Long? = null,
     val remainingMeters: Long? = null,
     val arrivalEpochSeconds: Long? = null,
+    val laneHighlight: Int = -1,
+    val lanes: List<Int> = emptyList(),
 )
 
 internal enum class RouteGuidanceChange {
@@ -50,6 +52,8 @@ internal class RouteGuidanceState(
     private var arrivalEpochSeconds: Long? = null
     private var remainingSeconds: Long? = null
     private var remainingMeters: Long? = null
+    private var laneHighlight = -1
+    private var lanes: List<Int> = emptyList()
     private var emptyListSinceNs: Long? = null
     private var lastRouteUpdateNs: Long? = null
 
@@ -58,6 +62,7 @@ internal class RouteGuidanceState(
         return when (messageId) {
             ROUTE_GUIDANCE_UPDATE -> parseRouteUpdate(payload)
             ROUTE_GUIDANCE_MANEUVER_UPDATE -> parseManeuverUpdate(payload)
+            LANE_GUIDANCE_UPDATE -> parseLaneUpdate(payload)
             else -> RouteGuidanceChange.NONE
         }
     }
@@ -68,6 +73,7 @@ internal class RouteGuidanceState(
         return AppleManeuver(
             distanceMeters, maneuver.type, maneuver.drivingSide,
             roadFor(maneuver), remainingSeconds, remainingMeters, arrivalEpochSeconds,
+            laneHighlight, lanes,
         )
     }
 
@@ -80,6 +86,8 @@ internal class RouteGuidanceState(
         arrivalEpochSeconds = null
         remainingSeconds = null
         remainingMeters = null
+        laneHighlight = -1
+        lanes = emptyList()
         emptyListSinceNs = null
         lastRouteUpdateNs = null
         maneuvers.clear()
@@ -97,6 +105,9 @@ internal class RouteGuidanceState(
 
     // The road the driver turns onto is what the next instruction is about; fall back to the current one.
     private fun roadFor(maneuver: Maneuver): String = maneuver.afterRoad.ifEmpty { currentRoad }
+
+    /** Raw lane-guidance state for diagnostics, even when no maneuver is active. */
+    fun laneSnapshot(): Pair<Int, List<Int>> = laneHighlight to lanes
 
     private fun parseRouteUpdate(data: ByteArray): RouteGuidanceChange {
         // A teardown NoRouteSet is not fresh guidance. Do not let repeated teardown frames
@@ -169,6 +180,26 @@ internal class RouteGuidanceState(
         return if (current() != null) RouteGuidanceChange.GUIDANCE else RouteGuidanceChange.NONE
     }
 
+    /** Apple 0x5204 LaneGuidanceInfoUpdate: 0x01 highlighted lane, 0x02 one lane, 0x03 lane array. */
+    private fun parseLaneUpdate(data: ByteArray): RouteGuidanceChange {
+        var highlight = -1
+        val next = mutableListOf<Int>()
+        forEachTlv(data) { id, value, valueLength ->
+            when {
+                id == 0x01 && valueLength >= 1 -> highlight = data[value].toInt() and 0xff
+                id == 0x02 && valueLength >= 1 -> next += data[value].toInt() and 0xff
+                id == 0x03 -> {
+                    for (offset in 0 until valueLength) {
+                        next += data[value + offset].toInt() and 0xff
+                    }
+                }
+            }
+        }
+        lanes = next.take(8)
+        laneHighlight = if (lanes.isEmpty()) -1 else highlight.coerceIn(-1, lanes.lastIndex)
+        return if (current() != null) RouteGuidanceChange.GUIDANCE else RouteGuidanceChange.NONE
+    }
+
     private inline fun forEachTlv(data: ByteArray, block: (Int, Int, Int) -> Unit) {
         var offset = 0
         while (offset < data.size) {
@@ -210,6 +241,7 @@ internal class RouteGuidanceState(
     companion object {
         const val ROUTE_GUIDANCE_UPDATE = 0x5201
         const val ROUTE_GUIDANCE_MANEUVER_UPDATE = 0x5202
+        const val LANE_GUIDANCE_UPDATE = 0x5204
         private const val TLV_HEADER_BYTES = 4
         private const val STALE_ROUTE_NS = 30_000_000_000L
         private const val EMPTY_LIST_HIDE_NS = 3_000_000_000L

@@ -1,3 +1,9 @@
+# DiPlay 0.3.4 — 2026-10-19
+
+- Port the DiPlay-CN 0x5204 TLV parser: 0x01 highlighted lane, 0x02 one lane, 0x03 lane array.
+- Log the parsed lane highlight and lane values alongside the existing raw laneHex and ILaneInfo method signatures.
+- No ECARX lane display mapping yet; this build is for capturing and comparing the real lane frame.
+
 # DiPlay 0.3.3 — 2026-10-19
 
 - Subscribe to Apple's 0x5204 LaneGuidanceInfoUpdate so lane-guidance frames reach the ECARX bridge for the first time.
