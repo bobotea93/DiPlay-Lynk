@@ -1,3 +1,8 @@
+# DiPlay 0.3.5 — 2026-10-19
+
+- Dump every 0x5204 TLV as type:hex in the log and diagnostic report, alongside the parsed highlight/lane values.
+- Keep the existing raw laneHex and ILaneInfo method signatures so the frame can be matched against the MIB2 RGI lane field model (showing/total/index/slot/count/positions/directions/status/angles).
+
 # DiPlay 0.3.4 — 2026-10-19
 
 - Port the DiPlay-CN 0x5204 TLV parser: 0x01 highlighted lane, 0x02 one lane, 0x03 lane array.

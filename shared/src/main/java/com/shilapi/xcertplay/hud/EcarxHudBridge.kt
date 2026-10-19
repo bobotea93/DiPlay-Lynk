@@ -214,7 +214,8 @@ internal object EcarxHudBridge {
         val change = route.accept(frame.messageId, frame.payload)
         if (frame.messageId == LANE_GUIDANCE_UPDATE) {
             val (highlight, lanes) = route.laneSnapshot()
-            Log.i(TAG, "lane guidance parsed highlight=" + highlight + " lanes=" + lanes.joinToString(","))
+            Log.i(TAG, "lane guidance parsed highlight=" + highlight + " lanes=" + lanes.joinToString(",") +
+                " tlvs=" + route.laneTlvDump())
         }
         when (change) {
             RouteGuidanceChange.GUIDANCE -> pushLocked(force = false)
@@ -600,6 +601,7 @@ internal object EcarxHudBridge {
             val lane = route.laneSnapshot()
             append(" laneParsedHighlight=").append(lane.first)
             append(" laneParsedValues=").append(lane.second.joinToString(","))
+            append(" laneTlvDump=").append(route.laneTlvDump())
             // The only read-back the API offers. Uninterpreted on purpose — it stays -1 while the
             // cluster mirrors (probe v3/v4), so it is printed for correlation, never acted on.
             dim?.let { append(" showPresentationOption=").append(EcarxDimApi.showPresentationOption(it)) }

@@ -54,6 +54,7 @@ internal class RouteGuidanceState(
     private var remainingMeters: Long? = null
     private var laneHighlight = -1
     private var lanes: List<Int> = emptyList()
+    private var laneTlvDump = ""
     private var emptyListSinceNs: Long? = null
     private var lastRouteUpdateNs: Long? = null
 
@@ -88,6 +89,7 @@ internal class RouteGuidanceState(
         remainingMeters = null
         laneHighlight = -1
         lanes = emptyList()
+        laneTlvDump = ""
         emptyListSinceNs = null
         lastRouteUpdateNs = null
         maneuvers.clear()
@@ -108,6 +110,9 @@ internal class RouteGuidanceState(
 
     /** Raw lane-guidance state for diagnostics, even when no maneuver is active. */
     fun laneSnapshot(): Pair<Int, List<Int>> = laneHighlight to lanes
+
+    /** All 0x5204 TLVs as type:hex, for matching against the MIB2 lane field model. */
+    fun laneTlvDump(): String = laneTlvDump
 
     private fun parseRouteUpdate(data: ByteArray): RouteGuidanceChange {
         // A teardown NoRouteSet is not fresh guidance. Do not let repeated teardown frames
@@ -184,7 +189,9 @@ internal class RouteGuidanceState(
     private fun parseLaneUpdate(data: ByteArray): RouteGuidanceChange {
         var highlight = -1
         val next = mutableListOf<Int>()
+        val dump = mutableListOf<String>()
         forEachTlv(data) { id, value, valueLength ->
+            dump += "0x%02x:%s".format(id, hex(data, value, valueLength))
             when {
                 id == 0x01 && valueLength >= 1 -> highlight = data[value].toInt() and 0xff
                 id == 0x02 && valueLength >= 1 -> next += data[value].toInt() and 0xff
@@ -197,7 +204,12 @@ internal class RouteGuidanceState(
         }
         lanes = next.take(8)
         laneHighlight = if (lanes.isEmpty()) -1 else highlight.coerceIn(-1, lanes.lastIndex)
+        laneTlvDump = dump.joinToString(",").take(1024)
         return if (current() != null) RouteGuidanceChange.GUIDANCE else RouteGuidanceChange.NONE
+    }
+
+    private fun hex(data: ByteArray, offset: Int, length: Int): String = buildString {
+        for (index in 0 until length) append("%02x".format(data[offset + index].toInt() and 0xff))
     }
 
     private inline fun forEachTlv(data: ByteArray, block: (Int, Int, Int) -> Unit) {
