@@ -50,6 +50,9 @@ internal object EcarxHudBridge {
     private const val LANE_GUIDANCE_UPDATE = 0x5204
     private const val NAVI_STATUS_IDLE = 0
 
+    /** The cluster does not dim bitmap arrows itself, so use a softer stroke at night. */
+    private val NIGHT_ARROW_COLOR = android.graphics.Color.rgb(180, 180, 180)
+
     /**
      * `drivingDirection` is deliberately left at 0. The field is a plain `int` in `s1/r`, its
      * source value is the toolkit's own, and no scale was recovered — passing Apple's
@@ -100,8 +103,8 @@ internal object EcarxHudBridge {
     // one capture of the 0x5204 payload plus the ILaneInfo method list is enough to map it.
     private var laneFrames = 0
     private var laneHex: String? = null
-    /** Last maneuver type that fell back to the straight arrow, for the next report. */
-    private var lastDefaultArrowType: Int? = null
+    /** Last maneuver type with no deterministic arrow mapping, for the next report. */
+    private var lastUnmappedArrowType: Int? = null
     private var laneMethodNames: String? = null
 
     /**
@@ -357,7 +360,8 @@ internal object EcarxHudBridge {
             // has no mapped shape, nothing is written here, so the cluster keeps the navigation
             // arrow it already derives from updateNavigationInfo instead of a counter value that
             // has no meaning on this firmware.
-            EcarxDimApi.updateTurnByTurnArrow(naviRef, turnArrowBitmap(maneuver.type, maneuver.drivingSide))
+            val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
+            if (bitmap != null) EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
         }
 
         lastPushed = guidance
@@ -427,7 +431,7 @@ internal object EcarxHudBridge {
      *
      * Returns null for an unrecognised maneuver so the caller falls back to the int overload.
      */
-    private fun turnArrowBitmap(type: Int, drivingSide: Int): android.graphics.Bitmap {
+    private fun turnArrowBitmap(type: Int, drivingSide: Int): android.graphics.Bitmap? {
         val kind = when (type) {
             1, 20 -> ArrowKind.LEFT
             2, 21 -> ArrowKind.RIGHT
@@ -440,18 +444,18 @@ internal object EcarxHudBridge {
             10, 12, 24, 25, 27 -> ArrowKind.DESTINATION
             3, 5, 8, 9, 11, 51 -> ArrowKind.STRAIGHT
             else -> {
-                if (type != lastDefaultArrowType) {
-                    lastDefaultArrowType = type
-                    Log.i(TAG, "turn arrow default type=" + type + " side=" + drivingSide)
+                if (type != lastUnmappedArrowType) {
+                    lastUnmappedArrowType = type
+                    Log.i(TAG, "turn arrow unmapped type=" + type + " side=" + drivingSide)
                 }
-                ArrowKind.STRAIGHT
+                return null
             }
         }
         val size = 128
         val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.WHITE
+            color = if (dayNightMode() == 1) NIGHT_ARROW_COLOR else android.graphics.Color.WHITE
             style = android.graphics.Paint.Style.STROKE
             strokeWidth = 12f
             strokeCap = android.graphics.Paint.Cap.ROUND
@@ -586,7 +590,7 @@ internal object EcarxHudBridge {
             append(" laneBytes=").append(laneHex?.length?.div(2) ?: 0)
             append(" laneHex=").append(laneHex ?: "none")
             append(" laneMethods=").append(laneMethods())
-            append(" lastDefaultArrowType=").append(lastDefaultArrowType ?: "none")
+            append(" lastUnmappedArrowType=").append(lastUnmappedArrowType ?: "none")
             // The only read-back the API offers. Uninterpreted on purpose — it stays -1 while the
             // cluster mirrors (probe v3/v4), so it is printed for correlation, never acted on.
             dim?.let { append(" showPresentationOption=").append(EcarxDimApi.showPresentationOption(it)) }
