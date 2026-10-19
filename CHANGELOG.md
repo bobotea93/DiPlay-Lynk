@@ -1,3 +1,8 @@
+# DiPlay 0.3.9 — 2026-10-19
+
+- Diagnostic experiment: fill INavigationInfo.getNavigationTurnSVG() with a minimal per-maneuver SVG instead of null, and record lastSvgLength/lastSvgHead.
+- Distance and road name already display, so this isolates the separate arrow channel. No ECARX SVG schema is known yet.
+
 # DiPlay 0.3.8 — 2026-10-19
 
 - Diagnostic experiment: send the real Apple maneuver type as ECARX Guidance.turnId instead of the incrementing counter, and derive drivingDirection from drivingSide.

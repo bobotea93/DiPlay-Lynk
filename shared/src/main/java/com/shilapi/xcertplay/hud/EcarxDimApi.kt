@@ -85,6 +85,7 @@ internal object EcarxDimApi {
         val muteState: Int = 0,
         val dayNightMode: Int = 0,
         val nextGuidancePointName: String = "",
+        val navigationTurnSvg: String = "",
     )
 
     // ---------------------------------------------------------------- DimInteraction
@@ -305,7 +306,7 @@ internal object EcarxDimApi {
             "getHighwayExitInfo" -> null
             "getRoadCameraInfo" -> null
             "getServiceAreaInfo" -> null
-            "getNavigationTurnSVG" -> null
+            "getNavigationTurnSVG" -> g.navigationTurnSvg
             // toString/hashCode/equals must stay sane so the platform can log the object.
             "toString" ->
                 "EcarxNavigationInfo(turn=${g.turnId} next=${g.distanceToNextMeters} dest=${g.distanceToDestinationMeters})"

@@ -108,6 +108,8 @@ internal object EcarxHudBridge {
     private var lastArrowDirection = "none"
     private var lastGuidanceTurnId = "none"
     private var lastGuidanceDrivingDirection = "none"
+    private var lastSvgLength = 0
+    private var lastSvgHead = ""
     private var laneMethodNames: String? = null
 
     /**
@@ -356,6 +358,8 @@ internal object EcarxHudBridge {
         val guidance = guidanceFor(maneuver)
         lastGuidanceTurnId = guidance.turnId.toString()
         lastGuidanceDrivingDirection = guidance.drivingDirection.toString()
+        lastSvgLength = guidance.navigationTurnSvg.length
+        lastSvgHead = guidance.navigationTurnSvg.take(96)
         if (!force && guidance == lastPushed) return
 
         // Order matches the toolkit: the aggregate payload first, then the discrete fields.
@@ -444,6 +448,7 @@ internal object EcarxHudBridge {
             muteState = 0,
             dayNightMode = dayNightMode(),
             nextGuidancePointName = maneuver.road,
+            navigationTurnSvg = turnArrowSvg(maneuver.type, maneuver.drivingSide),
         )
     }
 
@@ -452,6 +457,27 @@ internal object EcarxHudBridge {
         val app = context ?: return 0
         val night = app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         return if (night == Configuration.UI_MODE_NIGHT_YES) 1 else 0
+    }
+
+    /** A minimal SVG for the ECARX INavigationInfo.getNavigationTurnSVG() channel. */
+    private fun turnArrowSvg(type: Int, drivingSide: Int): String {
+        val shape = when (type) {
+            1, 20 -> "<path d='M32 56 V24 M32 24 L12 24 M12 24 L20 16 M12 24 L20 32'/>"
+            2, 21 -> "<path d='M32 56 V24 M32 24 L52 24 M52 24 L44 16 M52 24 L44 32'/>"
+            47 -> "<path d='M48 52 L16 20 M16 20 L28 20 M16 20 L16 32'/>"
+            48 -> "<path d='M16 52 L48 20 M48 20 L36 20 M48 20 L48 32'/>"
+            13, 22, 49, 52 -> "<path d='M32 56 V24 M32 24 L16 16 M16 16 L28 16'/>"
+            14, 23, 50, 53 -> "<path d='M32 56 V24 M32 24 L48 16 M48 16 L36 16'/>"
+            4, 18, 19, 26 -> "<path d='M40 56 V32 A12 12 0 0 1 16 32 V24 M16 24 L8 32 M16 24 L24 32'/>"
+            6, 7, in 28..46 -> "<circle cx='32' cy='32' r='13'/><path d='M32 56 V45 M45 32 L52 32 M52 32 L46 26 M52 32 L46 38'/>"
+            10, 12, 24, 25, 27 -> "<circle cx='32' cy='32' r='6'/><circle cx='32' cy='32' r='13'/>"
+            3, 5, 8, 9, 11, 51 -> "<path d='M32 56 V12 M32 12 L22 22 M32 12 L42 22'/>"
+            else -> ""
+        }
+        if (shape.isEmpty()) return ""
+        return "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
+            "<g fill='none' stroke='#FFFFFF' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'>" +
+            shape + "</g></svg>"
     }
 
     /**
@@ -628,6 +654,8 @@ internal object EcarxHudBridge {
             append(" lastArrowDirection=").append(lastArrowDirection)
             append(" guidanceTurnId=").append(lastGuidanceTurnId)
             append(" guidanceDrivingDirection=").append(lastGuidanceDrivingDirection)
+            append(" lastSvgLength=").append(lastSvgLength)
+            append(" lastSvgHead=").append(lastSvgHead)
             val lane = route.laneSnapshot()
             val laneText = lane.lanes.joinToString(";") { item ->
                 "pos=" + item.position + ",status=" + item.status + ",dir=" + item.direction +
