@@ -461,7 +461,7 @@ class AdaptiveSettingsUiTest {
 
     @Test
     @Config(shadows = [HotspotSearchProbe::class])
-    fun hotspotSearchIndexesItsAsyncCardWithoutStartingAnAdbProbe() {
+    fun hotspotSearchResultOpensTheSystemHotspotCardWithoutStartingAdb() {
         installBydSettingsPackage()
         AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.MANUAL)
         HotspotSearchProbe.workers.clear()
@@ -477,10 +477,6 @@ class AdaptiveSettingsUiTest {
 
         ReflectionHelpers.callInstanceMethod<Unit>(screen, "openSearchResult",
             ReflectionHelpers.ClassParameter(result.javaClass, result))
-        assertTrue(HotspotSearchProbe.entered.await(15, TimeUnit.SECONDS))
-        val worker = HotspotSearchProbe.workers.single()
-        worker.join(15_000)
-        assertFalse(worker.isAlive)
         shadowOf(Looper.getMainLooper()).idle()
 
         assertEquals(SettingsCategory.CONNECTION,
@@ -488,6 +484,9 @@ class AdaptiveSettingsUiTest {
         assertEquals(1, descendants(screen.window.decorView).filterIsInstance<Switch>().count {
             it.contentDescription == screen.getString(R.string.auto_car_hotspot_title)
         })
+        // This port starts the car hotspot through "Modify system settings", so opening the card
+        // must not touch ADB at all.
+        assertTrue("Opening the hotspot card must not contact ADB", HotspotSearchProbe.workers.isEmpty())
     }
 
     @Test

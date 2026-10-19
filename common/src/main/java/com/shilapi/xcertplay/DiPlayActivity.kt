@@ -2807,18 +2807,20 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
      */
     private fun carHotspotSettings(parent: LinearLayout) {
         if (AirPlayPersistence.loadWirelessHotspotMode(this) != WirelessHotspotMode.MANUAL) return
-        if (searchIndexSink != null) {
-            searchIndexSink?.addAll(listOf(
-                getString(R.string.settings_car_hotspot_control),
-                getString(R.string.auto_car_hotspot_title),
-            ))
-            return
-        }
+        // Check platform support before indexing the card as well: a search hit that opens a
+        // category with no card is worse than no hit at all.
         if (!CarHotspotTethering.appStartSupported()) {
             Log.i(
                 "DiPlay-Hotspot",
                 "settings hidden: Android ${Build.VERSION.SDK_INT} does not let an app start tethering",
             )
+            return
+        }
+        if (searchIndexSink != null) {
+            searchIndexSink?.addAll(listOf(
+                getString(R.string.settings_car_hotspot_control),
+                getString(R.string.auto_car_hotspot_title),
+            ))
             return
         }
         systemHotspotSettings(parent)
