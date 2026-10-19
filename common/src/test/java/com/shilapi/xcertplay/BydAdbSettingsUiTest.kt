@@ -19,6 +19,7 @@ import com.shilapi.xcertplay.orchestration.CarPlayController
 import com.shilapi.xcertplay.orchestration.WirelessHotspotMode
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
@@ -29,6 +30,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
 
+@Ignore("BYD ADB settings UI was removed from the Lynk port; the methods this class reflects no longer exist")
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29], qualifiers = "en", manifest = Config.NONE)
 class BydAdbSettingsUiTest {

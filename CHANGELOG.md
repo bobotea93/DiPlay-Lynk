@@ -1,3 +1,9 @@
+# DiPlay 0.3.12 — 2026-10-19
+
+- Hide the car-hotspot search entry on Android versions where the app cannot start tethering, matching the settings card that is already hidden there.
+- Rewrite the hotspot search test for this port's "Modify system settings" path; it must not start an ADB probe.
+- No arrow behavior change from 0.3.11.
+
 # DiPlay 0.3.11 — 2026-10-19
 
 - Diagnostic experiment: send AutoNavi (高德) turn-by-turn icon codes through the ECARX updateTurnByTurnArrow(int) overload instead of Apple maneuver types. Straight 16, slight right 17, slight left 18, left 19, right 20, sharp left 21, sharp right 22, u-turn 23/24, destination 3, roundabout 52.
