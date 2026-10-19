@@ -104,6 +104,7 @@ internal object EcarxHudBridge {
     private var lastUnmappedArrowType: Int? = null
     private var lastNaviPush = "none"
     private var lastArrowPush = "none"
+    private var lastArrowChannel = "none"
     private var lastArrowType = "none"
     private var lastArrowDirection = "none"
     private var lastGuidanceTurnId = "none"
@@ -385,15 +386,13 @@ internal object EcarxHudBridge {
             // has no mapped shape, nothing is written here, so the cluster keeps the navigation
             // arrow it already derives from updateNavigationInfo instead of a counter value that
             // has no meaning on this firmware.
-            val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
+            // Experiment 0.3.10: use the stock ECARX int overload with the real maneuver type.
+            // Bitmap and SVG channels are kept for diagnostics, but only the int call is used here.
             lastArrowType = maneuver.type.toString()
             lastArrowDirection = maneuver.drivingSide.toString()
-            if (bitmap != null) {
-                val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
-                lastArrowPush = if (arrow.ok) "ok" else "failed:" + arrow.reason
-            } else {
-                lastArrowPush = "unmapped"
-            }
+            lastArrowChannel = "int"
+            val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, maneuver.type)
+            lastArrowPush = if (arrow.ok) "int-ok" else "int-failed:" + arrow.reason
         }
 
         lastPushed = guidance
@@ -650,6 +649,7 @@ internal object EcarxHudBridge {
             append(" lastUnmappedArrowType=").append(lastUnmappedArrowType ?: "none")
             append(" lastNaviPush=").append(lastNaviPush)
             append(" lastArrowPush=").append(lastArrowPush)
+            append(" lastArrowChannel=").append(lastArrowChannel)
             append(" lastArrowType=").append(lastArrowType)
             append(" lastArrowDirection=").append(lastArrowDirection)
             append(" guidanceTurnId=").append(lastGuidanceTurnId)

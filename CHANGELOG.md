@@ -1,3 +1,8 @@
+# DiPlay 0.3.10 — 2026-10-19
+
+- Diagnostic experiment: use the stock ECARX updateTurnByTurnArrow(int) overload with the real Apple maneuver type instead of the Bitmap overload.
+- Record lastArrowChannel and lastArrowPush=int-ok/int-failed. SVG and Bitmap probe fields are kept in the report.
+
 # DiPlay 0.3.9 — 2026-10-19
 
 - Diagnostic experiment: fill INavigationInfo.getNavigationTurnSVG() with a minimal per-maneuver SVG instead of null, and record lastSvgLength/lastSvgHead.
