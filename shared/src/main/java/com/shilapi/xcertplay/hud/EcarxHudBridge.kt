@@ -115,6 +115,7 @@ internal object EcarxHudBridge {
     private var lastBitmapPush = "none"
     private var lastArrowStringPush = "none"
     private var lastArrowSvgLength = 0
+    private var lastArrowSvgHead = ""
     /** Parsed 0x5202 maneuvers with a human type label, for the diagnostic report. */
     private val maneuverTimeline = ArrayDeque<String>()
     /** Last handful of arrow pushes, so a straight segment can be told apart from a cleared route. */
@@ -429,6 +430,7 @@ internal object EcarxHudBridge {
             lastArrowDirection = maneuver.drivingSide.toString()
             val code = amapTurnCode(maneuver.type, maneuver.drivingSide)
             val svg = turnArrowSvg(maneuver.type, maneuver.drivingSide)
+            lastArrowSvgHead = svg.take(120)
             if (svg.isEmpty()) {
                 lastArrowStringPush = "svg-empty"
                 lastArrowPush = "svg-empty"
@@ -470,7 +472,7 @@ internal object EcarxHudBridge {
             val codeText = code?.toString() ?: "skip"
             arrowTimeline.addLast(
                 "$stamp ${maneuverLabel(maneuver.type)} t=${maneuver.type} c=$codeText " +
-                    "d=${maneuver.distanceMeters} $lastArrowPush",
+                    "d=${maneuver.distanceMeters} svg=$lastArrowSvgLength $lastArrowPush",
             )
 
         }
@@ -569,6 +571,19 @@ internal object EcarxHudBridge {
      * 0.3.11 experiment: the ECARX int overload receives these instead of Apple's maneuver type.
      * Unknown maneuvers fall back to straight (16) so the cluster always has a drawable code.
      */
+    /** Lists the updateTurnByTurnArrow parameter signatures the platform exposes. */
+    private fun arrowOverloads(): String {
+        val naviRef = navi ?: return "no-navi"
+        return runCatching {
+            naviRef.javaClass.methods
+                .filter { it.name == "updateTurnByTurnArrow" }
+                .joinToString(";") { method ->
+                    method.parameterTypes.joinToString(",") { it.simpleName }
+                }
+                .ifEmpty { "none" }
+        }.getOrDefault("probe-failed")
+    }
+
     /** Human label for an Apple maneuver type, for the diagnostic timelines only. */
     private fun maneuverLabel(type: Int): String = when (type) {
         1, 20 -> "左转"
@@ -783,6 +798,8 @@ internal object EcarxHudBridge {
             append(" lastBitmapPush=").append(lastBitmapPush)
             append(" lastArrowStringPush=").append(lastArrowStringPush)
             append(" lastArrowSvgLength=").append(lastArrowSvgLength)
+            append(" lastArrowSvgHead=").append(lastArrowSvgHead)
+            append(" arrowOverloads=").append(arrowOverloads())
             append(" arrowTimeline=").append(arrowTimeline.joinToString("|"))
             append(" maneuverTimeline=").append(maneuverTimeline.joinToString("|"))
             append(" guidanceTurnId=").append(lastGuidanceTurnId)
