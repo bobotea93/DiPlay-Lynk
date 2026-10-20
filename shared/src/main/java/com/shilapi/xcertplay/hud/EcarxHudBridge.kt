@@ -75,7 +75,10 @@ internal object EcarxHudBridge {
     private const val PRESENTATION_SLOW_SECONDS = 10
 
     private val lock = Any()
-    private val route = RouteGuidanceState(keepAcrossGaps = true)
+    private val route = RouteGuidanceState(
+        keepAcrossGaps = true,
+        onManeuver = { index, type, side, road -> recordManeuver(index, type, side, road) },
+    )
     private var context: Context? = null
     private var available = false
     private var dim: Any? = null
@@ -110,6 +113,8 @@ internal object EcarxHudBridge {
     private var lastArrowCode = "none"
     private var lastArrowCodeValue = 0
     private var lastBitmapPush = "none"
+    /** Parsed 0x5202 maneuvers with a human type label, for the diagnostic report. */
+    private val maneuverTimeline = ArrayDeque<String>()
     /** Last handful of arrow pushes, so a straight segment can be told apart from a cleared route. */
     private val arrowTimeline = ArrayDeque<String>()
     private var lastGuidanceTurnId = "none"
@@ -462,8 +467,11 @@ internal object EcarxHudBridge {
             val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
                 .format(java.util.Date())
             val codeText = code?.toString() ?: "skip"
-            arrowTimeline.addLast("$stamp t=${maneuver.type} c=$codeText d=${maneuver.distanceMeters} $lastArrowPush")
-            while (arrowTimeline.size > 12) arrowTimeline.removeFirst()
+            arrowTimeline.addLast(
+                "$stamp ${maneuverLabel(maneuver.type)} t=${maneuver.type} c=$codeText " +
+                    "d=${maneuver.distanceMeters} $lastArrowPush",
+            )
+            while (arrowTimeline.size > 60) arrowTimeline.removeFirst()
         }
 
         lastPushed = guidance
@@ -560,6 +568,30 @@ internal object EcarxHudBridge {
      * 0.3.11 experiment: the ECARX int overload receives these instead of Apple's maneuver type.
      * Unknown maneuvers fall back to straight (16) so the cluster always has a drawable code.
      */
+    /** Human label for an Apple maneuver type, for the diagnostic timelines only. */
+    private fun maneuverLabel(type: Int): String = when (type) {
+        1, 20 -> "左转"
+        2, 21 -> "右转"
+        47 -> "左急转"
+        48 -> "右急转"
+        13, 22, 49, 52 -> "左前"
+        14, 23, 50, 53 -> "右前"
+        4, 18, 19, 26 -> "掉头"
+        6, 7, in 28..46 -> "环岛"
+        10, 12, 24, 25, 27 -> "到达"
+        3, 5, 8, 9, 11, 51 -> "直行"
+        else -> "未知"
+    }
+
+    /** Records one parsed 0x5202 maneuver for the next diagnostic report. */
+    private fun recordManeuver(index: Int, type: Int, side: Int, road: String) {
+        val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+        maneuverTimeline.addLast(
+            "$stamp idx=$index ${maneuverLabel(type)} t=$type s=$side road=$road",
+        )
+        while (maneuverTimeline.size > 60) maneuverTimeline.removeFirst()
+    }
+
     private fun amapTurnCode(type: Int, drivingSide: Int): Int? = when (type) {
         1, 20 -> 19
         2, 21 -> 20
@@ -749,6 +781,7 @@ internal object EcarxHudBridge {
             append(" lastArrowCode=").append(lastArrowCode)
             append(" lastBitmapPush=").append(lastBitmapPush)
             append(" arrowTimeline=").append(arrowTimeline.joinToString("|"))
+            append(" maneuverTimeline=").append(maneuverTimeline.joinToString("|"))
             append(" guidanceTurnId=").append(lastGuidanceTurnId)
             append(" guidanceDrivingDirection=").append(lastGuidanceDrivingDirection)
             append(" lastSvgLength=").append(lastSvgLength)

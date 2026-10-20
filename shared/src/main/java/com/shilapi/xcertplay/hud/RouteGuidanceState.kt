@@ -70,6 +70,8 @@ internal class RouteGuidanceState(
      * ignored and only an explicit end (NoRouteSet/Arrived) or a session teardown clears it.
      */
     private val keepAcrossGaps: Boolean = false,
+    /** Called for every parsed 0x5202 maneuver, for the diagnostic timeline. */
+    private val onManeuver: ((index: Int, type: Int, side: Int, road: String) -> Unit)? = null,
 ) {
     private data class Maneuver(val type: Int, val drivingSide: Int, val afterRoad: String)
 
@@ -227,7 +229,12 @@ internal class RouteGuidanceState(
                 id == 0x0008 && valueLength >= 1 -> drivingSide = data[value].toInt() and 0xff
             }
         }
-        if (index != null && type != null) maneuvers[index!!] = Maneuver(type!!, drivingSide, afterRoad)
+        val parsedIndex = index
+        val parsedType = type
+        if (parsedIndex != null && parsedType != null) {
+            maneuvers[parsedIndex] = Maneuver(parsedType, drivingSide, afterRoad)
+            onManeuver?.invoke(parsedIndex, parsedType, drivingSide, afterRoad)
+        }
         return if (current() != null) RouteGuidanceChange.GUIDANCE else RouteGuidanceChange.NONE
     }
 
