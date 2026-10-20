@@ -1,3 +1,9 @@
+# DiPlay 0.3.15 — 2026-10-20
+
+- Turn the cluster projection off when a CarPlay session ends or the controller tears down; the saved "instrument projection" setting is kept and re-armed on the next session.
+- Runtime-only suspend: setPresentationToDimSwitch(false) without persisting a preference change, so the next session restores the user's choice automatically.
+- No arrow behavior change from 0.3.14.
+
 # DiPlay 0.3.14 — 2026-10-20
 
 - Remove timer-based arrow clearing for the ECARX cluster: route state no longer expires after 30 s or hides after a 3 s empty list, so the 40-70 s gap between 0x5201 frames no longer wipes the arrow.

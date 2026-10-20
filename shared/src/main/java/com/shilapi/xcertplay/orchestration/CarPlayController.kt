@@ -355,6 +355,8 @@ class CarPlayController(
             if (replacement) {
                 // ECARX：新会话开始前先清掉上一条会话的箭头，避免旧状态压到新数据上。
                 runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.clear() }
+                // ECARX：恢复用户保存的仪表投屏开关。
+                runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.resumePresentation() }
                 BydNavigationOutputs.start(appContext)
                 BydNavigationOutputs.carPlaySessionStarted()
                 com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(true)
@@ -397,6 +399,8 @@ class CarPlayController(
                 BydNavigationOutputs.endNow(preserveTurnOverlay = !closed && config.transport == CarPlayTransport.WIRELESS)
                 // ECARX：会话结束，清掉仪表上遗留的导航箭头/距离
                 runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.clear() }
+                // ECARX：会话结束，关闭仪表投屏；保存的设置保留，下次会话再恢复
+                runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.suspendPresentation() }
                 BydBluetoothSuspend.resume(appContext, this@CarPlayController) { debugLog(it) }
                 // ECARX：会话结束，恢复车机蓝牙的 A2DP/HFP
                 runCatching { com.shilapi.xcertplay.bluetooth.CarBluetoothProfileGuard.restore(appContext) { debugLog(it) } }
@@ -693,6 +697,7 @@ class CarPlayController(
         BydNavigationOutputs.endNow()
         // ECARX：teardown 也清一次，覆盖会话未正常结束的路径
         runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.clear() }
+        runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.suspendPresentation() }
         com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(false)
         BydNavigationOutputs.clearClusterStreamControl(::applyClusterUi)
         closeReceivers()

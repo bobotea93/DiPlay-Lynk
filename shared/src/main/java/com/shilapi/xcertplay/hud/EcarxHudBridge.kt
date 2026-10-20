@@ -251,6 +251,25 @@ internal object EcarxHudBridge {
         endLocked()
     }
 
+    /**
+     * Runtime-only projection off: stop mirroring when a CarPlay session ends without touching
+     * the saved setting. [resumePresentation] re-arms it on the next session.
+     */
+    fun suspendPresentation() = synchronized(lock) {
+        presentationWanted = false
+        presentationAttempts = 0
+        presentationCountdown = 0
+        applyPresentationLocked(false)
+    }
+
+    /** Re-arm the saved projection intent when a new CarPlay session starts. */
+    fun resumePresentation() = synchronized(lock) {
+        val app = context ?: return@synchronized
+        if (!EcarxOutputSettings.presentationSwitch(app)) return@synchronized
+        presentationWanted = true
+        if (available) requestPresentationLocked()
+    }
+
     /** Whether guidance is currently on the cluster. */
     fun isActive(): Boolean = synchronized(lock) { lastPushed != null }
 
