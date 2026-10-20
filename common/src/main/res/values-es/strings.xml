@@ -914,4 +914,33 @@
 
     <string name="settings_hotspot_interface">Interfaz del punto de acceso (opcional)</string>
     <string name="settings_hotspot_interface_description">Solo para unidades que ejecutan su punto de acceso en una interfaz de red que Android no informa como punto de acceso Wi-Fi, por ejemplo eth0.3 en algunas unidades Geely, Lynk &amp; Co y otros Qualcomm. Déjalo vacío para encontrarla automáticamente.</string>
+    <string name="settings_ecarx_title">Navegación en el cuadro de instrumentos (ECARX)</string>
+    <string name="settings_ecarx_navigation">Navegación en el cuadro de instrumentos</string>
+    <string name="settings_ecarx_navigation_description">Envía al cuadro de instrumentos del coche las flechas de giro, la distancia y los nombres de calle de CarPlay mediante la interfaz ECARX DIM. Nada sale de la unidad central.</string>
+    <string name="settings_ecarx_presentation">Duplicar la pantalla en el cuadro de instrumentos</string>
+    <string name="settings_ecarx_presentation_description">Pide al coche que muestre también la pantalla actual de DiPlay en el cuadro de instrumentos. La plataforma no informa si el cuadro lo aceptó, así que compruébalo en el propio cuadro.</string>
+    <string name="settings_ecarx_navi_mode">Modo de navegación del cuadro</string>
+    <string name="settings_ecarx_navi_mode_off">Dejar la fuente propia del coche</string>
+    <string name="settings_ecarx_navi_mode_on">Preferir la navegación de CarPlay</string>
+    <string name="settings_ecarx_turn_arrow">Flecha de giro sin procesar (experimental)</string>
+    <string name="settings_ecarx_turn_arrow_description">También envía cada maniobra como una flecha numérica. La tabla de ID de giro de ECARX no está verificada, así que comprueba la flecha en el coche antes de fiarte de ella.</string>
+    <string name="settings_ecarx_unavailable">El coche rechazó la solicitud</string>
+    <string name="settings_ecarx_arrow_test">Probar ID de giro (experimental)</string>
+    <string name="settings_ecarx_arrow_test_description">Cada botón envía solo la llamada de flecha seleccionada, un paso cada 2 segundos; vuelve a pulsar para reiniciar. Los ID de giro van del 0 al 60, y las pruebas de mapa de bits y SVG recorren las maniobras básicas: recto, giros, cambio de sentido, rotonda y llegada.</string>
+    <string name="settings_ecarx_arrow_test_idle">Ninguna prueba en curso</string>
+    <string name="settings_ecarx_arrow_test_current">ID actual %1$d</string>
+    <string name="settings_ecarx_bitmap_test">Probar flechas en mapa de bits (experimental)</string>
+    <string name="settings_ecarx_svg_test">Probar flechas en SVG (experimental)</string>
+    <string name="settings_ecarx_arrow_bitmap_step">Mapa de bits %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_svg_step">SVG %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_shape_straight">Recto</string>
+    <string name="settings_ecarx_arrow_shape_slight_left">Ligeramente a la izquierda</string>
+    <string name="settings_ecarx_arrow_shape_left">Izquierda</string>
+    <string name="settings_ecarx_arrow_shape_sharp_left">Giro cerrado a la izquierda</string>
+    <string name="settings_ecarx_arrow_shape_slight_right">Ligeramente a la derecha</string>
+    <string name="settings_ecarx_arrow_shape_right">Derecha</string>
+    <string name="settings_ecarx_arrow_shape_sharp_right">Giro cerrado a la derecha</string>
+    <string name="settings_ecarx_arrow_shape_u_turn">Cambio de sentido</string>
+    <string name="settings_ecarx_arrow_shape_roundabout">Rotonda</string>
+    <string name="settings_ecarx_arrow_shape_destination">Llegada</string>
 </resources>

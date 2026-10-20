@@ -914,4 +914,33 @@
 
     <string name="settings_hotspot_interface">Интерфейс точки доступа (необязательно)</string>
     <string name="settings_hotspot_interface_description">Только для головных устройств, которые держат точку доступа на сетевом интерфейсе, не считающемся в Android точкой доступа Wi-Fi, например eth0.3 на некоторых устройствах Geely, Lynk &amp; Co и других Qualcomm. Оставьте пустым для автоматического поиска.</string>
+    <string name="settings_ecarx_title">Навигация на щитке приборов (ECARX)</string>
+    <string name="settings_ecarx_navigation">Навигация на щитке приборов</string>
+    <string name="settings_ecarx_navigation_description">Передаёт в щиток приборов автомобиля стрелки поворота, расстояние и названия улиц из CarPlay через интерфейс ECARX DIM. Данные не покидают головное устройство.</string>
+    <string name="settings_ecarx_presentation">Дублировать экран на щитке приборов</string>
+    <string name="settings_ecarx_presentation_description">Просит автомобиль показывать текущий экран DiPlay также и на щитке приборов. Платформа не сообщает, принял ли щиток запрос, поэтому проверяйте сам щиток.</string>
+    <string name="settings_ecarx_navi_mode">Режим навигации на щитке</string>
+    <string name="settings_ecarx_navi_mode_off">Оставить собственный источник автомобиля</string>
+    <string name="settings_ecarx_navi_mode_on">Предпочитать навигацию CarPlay</string>
+    <string name="settings_ecarx_turn_arrow">Сырая стрелка поворота (экспериментально)</string>
+    <string name="settings_ecarx_turn_arrow_description">Также отправляет каждый манёвр числовой стрелкой. Таблица идентификаторов поворота ECARX не проверена, поэтому сверяйте стрелку на автомобиле.</string>
+    <string name="settings_ecarx_unavailable">Автомобиль отклонил запрос</string>
+    <string name="settings_ecarx_arrow_test">Проверка ID поворота (экспериментально)</string>
+    <string name="settings_ecarx_arrow_test_description">Каждая кнопка отправляет только соответствующий вызов стрелки поворота, по одному шагу каждые 2 секунды; повторное нажатие начинает заново. ID поворота идут от 0 до 60, а тесты растра и SVG перебирают базовые манёвры: прямо, поворот, разворот, круговое движение, прибытие.</string>
+    <string name="settings_ecarx_arrow_test_idle">Проверка не запущена</string>
+    <string name="settings_ecarx_arrow_test_current">Текущий ID %1$d</string>
+    <string name="settings_ecarx_bitmap_test">Проверка стрелок растром (экспериментально)</string>
+    <string name="settings_ecarx_svg_test">Проверка стрелок SVG (экспериментально)</string>
+    <string name="settings_ecarx_arrow_bitmap_step">Растр %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_svg_step">SVG %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_shape_straight">Прямо</string>
+    <string name="settings_ecarx_arrow_shape_slight_left">Плавно влево</string>
+    <string name="settings_ecarx_arrow_shape_left">Налево</string>
+    <string name="settings_ecarx_arrow_shape_sharp_left">Резко влево</string>
+    <string name="settings_ecarx_arrow_shape_slight_right">Плавно вправо</string>
+    <string name="settings_ecarx_arrow_shape_right">Направо</string>
+    <string name="settings_ecarx_arrow_shape_sharp_right">Резко вправо</string>
+    <string name="settings_ecarx_arrow_shape_u_turn">Разворот</string>
+    <string name="settings_ecarx_arrow_shape_roundabout">Круговое движение</string>
+    <string name="settings_ecarx_arrow_shape_destination">Прибытие</string>
 </resources>

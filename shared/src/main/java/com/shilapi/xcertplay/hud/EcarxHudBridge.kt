@@ -8,6 +8,8 @@ import android.os.Looper
 import android.util.Log
 import com.shilapi.xcertplay.iap2.wire.Iap2Frame
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 /**
@@ -39,6 +41,15 @@ internal object EcarxHudBridge {
 
     /** Re-send even when nothing changed, so the cluster never quietly drops the card. */
     private const val KEEPALIVE_TICKS = 5
+
+    /**
+     * The arrow-channel tests offered in Settings. [TURN_ID_TEST_FIRST]..[TURN_ID_TEST_LAST]
+     * walks the numeric code table; the bitmap and SVG tests walk [EcarxArrowShape], one step
+     * every [ARROW_TEST_STEP_MILLIS].
+     */
+    private const val TURN_ID_TEST_FIRST = 0
+    private const val TURN_ID_TEST_LAST = 60
+    private const val ARROW_TEST_STEP_MILLIS = 2_000L
 
     /**
      * `getNavigationStatus()` while guidance is live. The toolkit copies its own value through
@@ -98,6 +109,23 @@ internal object EcarxHudBridge {
     private var lastPushed: EcarxDimApi.Guidance? = null
     private var ticksSincePush = 0
     private var guidanceActive = false
+
+    // Arrow-channel test state. While one runs the normal push path stays silent, so the cluster
+    // shows only the value under test; the route state keeps updating in the background.
+    private var testRunning = false
+    private var testKind = EcarxArrowTestKind.TURN_ID
+    private var testIndex = 0
+    private var testTotal = 0
+    private var testLastStep: EcarxArrowTestStep? = null
+    /** Bumped on every start, so a task queued by an earlier run cannot push into the new one. */
+    private var testGeneration = 0
+    private var testFuture: ScheduledFuture<*>? = null
+    private var testListener: ((EcarxArrowTestStep) -> Unit)? = null
+    private val testExecutor: ScheduledExecutorService by lazy {
+        Executors.newSingleThreadScheduledExecutor { runnable ->
+            Thread(runnable, "diplay-ecarx-arrow-test").apply { isDaemon = true }
+        }
+    }
 
     // Lane-guidance probe. The cluster draws every lane bright because we send no lane data yet;
     // one capture of the 0x5204 payload plus the ILaneInfo method list is enough to map it.
@@ -246,6 +274,9 @@ internal object EcarxHudBridge {
                 " total=" + lane.total + " complete=" + lane.complete +
                 " desc=\"" + lane.description + "\" lanes=" + laneText + " tlvs=" + lane.tlvDump)
         }
+        // A running test owns the arrow channel; frames are still recorded so the normal path
+        // resumes with the right maneuver as soon as it ends.
+        if (testRunning) return@synchronized
         when (change) {
             RouteGuidanceChange.GUIDANCE -> pushLocked(force = false)
             RouteGuidanceChange.CLEAR -> if (lastPushed != null) endLocked()
@@ -256,8 +287,9 @@ internal object EcarxHudBridge {
     fun clear() = synchronized(lock) {
         route.clear() // Stop the keepalive from restoring guidance after cleanup.
         // Send the clear even when this process never pushed: after a restart the cluster may
-        // still show the arrow left by the previous process.
-        endLocked()
+        // still show the arrow left by the previous process. A running test owns the arrow, so
+        // the teardown waits until it ends.
+        if (!testRunning) endLocked()
     }
 
     /**
@@ -281,6 +313,139 @@ internal object EcarxHudBridge {
 
     /** Whether guidance is currently on the cluster. */
     fun isActive(): Boolean = synchronized(lock) { lastPushed != null }
+
+    // ---------------------------------------------------------------- arrow-channel tests (diagnostic)
+
+    /**
+     * Runs one arrow channel for calibration: [EcarxArrowTestKind.TURN_ID] pushes
+     * `updateTurnByTurnArrow(int)` for 0..60, [EcarxArrowTestKind.BITMAP] and
+     * [EcarxArrowTestKind.SVG] push the basic maneuvers from [EcarxArrowShape] through their own
+     * overload. One step every [ARROW_TEST_STEP_MILLIS], and nothing else on the DIM interface
+     * meanwhile: the normal guidance push is suspended until the test ends, so the cluster shows
+     * only the value under test. Saved settings and the next session are untouched.
+     *
+     * Starting again cancels the previous run and starts from the first step.
+     * [onStep] runs on the test thread for every pushed step, the first one included.
+     * Returns false when the head unit exposes no DIM navigation interface.
+     */
+    fun startArrowTest(
+        kind: EcarxArrowTestKind,
+        onStep: ((EcarxArrowTestStep) -> Unit)?,
+    ): Boolean = synchronized(lock) {
+        if (!available) return@synchronized false
+        reclaimLocked()
+        if (navi == null) return@synchronized false
+        testFuture?.cancel(false)
+        testRunning = true
+        testKind = kind
+        testIndex = 0
+        testTotal = when (kind) {
+            EcarxArrowTestKind.TURN_ID -> TURN_ID_TEST_LAST - TURN_ID_TEST_FIRST + 1
+            EcarxArrowTestKind.BITMAP, EcarxArrowTestKind.SVG -> EcarxArrowShape.entries.size
+        }
+        testGeneration += 1
+        val generation = testGeneration
+        testListener = onStep
+        testFuture = testExecutor.scheduleAtFixedRate(
+            Runnable { advanceArrowTest(generation) }, 0L, ARROW_TEST_STEP_MILLIS, TimeUnit.MILLISECONDS,
+        )
+        Log.i(TAG, "arrow test armed: $kind total=$testTotal every ${ARROW_TEST_STEP_MILLIS}ms")
+        true
+    }
+
+    fun stopArrowTest() = synchronized(lock) {
+        testRunning = false
+        testFuture?.cancel(false)
+        testFuture = null
+        testListener = null
+        // An explicit stop forgets the run; a test that reached its last step keeps that step, so
+        // the readout still names what is on the cluster.
+        testLastStep = null
+    }
+
+    /** The last step a test pushed, or null when none has run in this process. */
+    fun arrowTestStep(): EcarxArrowTestStep? = synchronized(lock) { testLastStep }
+
+    private fun advanceArrowTest(generation: Int) {
+        var step: EcarxArrowTestStep? = null
+        var listener: ((EcarxArrowTestStep) -> Unit)? = null
+        synchronized(lock) {
+            if (!testRunning || generation != testGeneration) return
+            val naviRef = navi
+            if (naviRef == null) {
+                stopTestLocked()
+                return
+            }
+            val index = testIndex
+            if (index >= testTotal) {
+                stopTestLocked()
+                return
+            }
+            val current = if (testKind == EcarxArrowTestKind.TURN_ID) {
+                EcarxArrowTestStep(testKind, index, testTotal, turnId = TURN_ID_TEST_FIRST + index)
+            } else {
+                EcarxArrowTestStep(testKind, index, testTotal, shape = EcarxArrowShape.entries[index])
+            }
+            pushTestStepLocked(naviRef, current)
+            testLastStep = current
+            step = current
+            listener = testListener
+            if (index + 1 >= testTotal) {
+                stopTestLocked()
+            } else {
+                testIndex = index + 1
+            }
+        }
+        // Never call the UI back while holding the lock; the test thread is not the main thread.
+        val pushed = step ?: return
+        listener?.invoke(pushed)
+    }
+
+    /** Cancels the periodic task without touching the saved settings or the last pushed step. */
+    private fun stopTestLocked() {
+        testRunning = false
+        testFuture?.cancel(false)
+        testFuture = null
+    }
+
+    private fun pushTestStepLocked(naviRef: Any, step: EcarxArrowTestStep): EcarxDimApi.EcarxResult {
+        val result = when (step.kind) {
+            EcarxArrowTestKind.TURN_ID -> EcarxDimApi.updateTurnByTurnArrow(naviRef, step.turnId)
+            EcarxArrowTestKind.BITMAP -> {
+                val shape = step.shape
+                val bitmap = shape?.let { turnArrowBitmap(it.appleType, it.drivingSide) }
+                if (bitmap == null) {
+                    EcarxDimApi.EcarxResult.failed("no bitmap for ${shape?.name}")
+                } else {
+                    EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+                }
+            }
+            EcarxArrowTestKind.SVG -> {
+                val shape = step.shape
+                val svg = shape?.let { turnArrowSvg(it.appleType, it.drivingSide) }.orEmpty()
+                if (svg.isEmpty()) {
+                    EcarxDimApi.EcarxResult.failed("no svg for ${shape?.name}")
+                } else {
+                    EcarxDimApi.updateTurnByTurnArrow(naviRef, svg)
+                }
+            }
+        }
+        lastArrowChannel = when (step.kind) {
+            EcarxArrowTestKind.TURN_ID -> "test-int"
+            EcarxArrowTestKind.BITMAP -> "test-bitmap"
+            EcarxArrowTestKind.SVG -> "test-svg"
+        }
+        lastArrowCode = step.shape?.let { "shape:" + it.name } ?: step.turnId.toString()
+        if (step.kind == EcarxArrowTestKind.TURN_ID) lastArrowCodeValue = step.turnId
+        lastArrowPush = if (result.ok) "test-ok" else "test-failed:" + result.reason
+        val label = step.shape?.name ?: step.turnId.toString()
+        if (result.ok) {
+            Log.i(TAG, "arrow test ${step.kind} $label")
+        } else {
+            Log.w(TAG, "arrow test ${step.kind} $label failed: ${result.reason}")
+        }
+        return result
+    }
 
     // ---------------------------------------------------------------- OEM switches
 
@@ -349,6 +514,7 @@ internal object EcarxHudBridge {
         // asking for the handles as well as for the projection itself.
         if (dim == null || navi == null) reclaimLocked()
         watchProjectionLocked()
+        if (testRunning) return@synchronized
         // Guidance can expire without a frame (a list that stays empty), so check every second.
         if (lastPushed != null && route.current() == null) endLocked()
         else if (++ticksSincePush >= KEEPALIVE_TICKS) pushLocked(force = true)
@@ -382,6 +548,7 @@ internal object EcarxHudBridge {
 
     private fun pushLocked(force: Boolean) {
         val app = context ?: return
+        if (testRunning) return
         if (!EcarxOutputSettings.enabled(app)) {
             if (lastPushed != null) endLocked()
             return
@@ -489,7 +656,7 @@ internal object EcarxHudBridge {
         val naviRef = navi
         if (naviRef != null) {
             EcarxDimApi.notifyTurnByTurnStopped(naviRef)
-            if (context?.let(EcarxOutputSettings::turnArrowExperimental) == true) {
+            if (!testRunning && context?.let(EcarxOutputSettings::turnArrowExperimental) == true) {
                 EcarxDimApi.updateTurnByTurnArrow(naviRef, 0)
             }
             EcarxDimApi.updateDistanceToNextGuidancePoint(naviRef, 0)
@@ -802,6 +969,9 @@ internal object EcarxHudBridge {
             append(" lastArrowStringPush=").append(lastArrowStringPush)
             append(" lastArrowSvgLength=").append(lastArrowSvgLength)
             append(" lastArrowSvgHead=").append(lastArrowSvgHead)
+            append(" arrowTest=").append(testKind).append(" step=").append(testIndex)
+                .append('/').append(testTotal).append(" running=").append(testRunning)
+                .append(" lastTest=").append(testLastStep?.shape?.name ?: testLastStep?.turnId ?: "none")
             append(" arrowOverloads=").append(arrowOverloads())
             append(" arrowTimeline=").append(arrowTimeline.joinToString("|"))
             append(" maneuverTimeline=").append(maneuverTimeline.joinToString("|"))

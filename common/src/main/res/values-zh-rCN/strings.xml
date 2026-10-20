@@ -986,4 +986,22 @@
     <string name="settings_ecarx_turn_arrow">原始转向箭头（实验性）</string>
     <string name="settings_ecarx_turn_arrow_description">额外把机动动作以数字箭头发给仪表。ECARX 的转向 ID 表未经验证，请先在车上核对箭头方向。</string>
     <string name="settings_ecarx_unavailable">车机拒绝了这次请求</string>
+    <string name="settings_ecarx_arrow_test">测试转向 ID（实验性）</string>
+    <string name="settings_ecarx_arrow_test_description">三个按钮各自只调用对应的转向箭头接口，每 2 秒推进一步；再次按下会从头开始。转向 ID 从 0 到 60，位图和 SVG 测试依次送直行、转向、掉头、环岛、到达等基本图形。</string>
+    <string name="settings_ecarx_arrow_test_idle">未在测试</string>
+    <string name="settings_ecarx_arrow_test_current">当前 ID %1$d</string>
+    <string name="settings_ecarx_bitmap_test">测试箭头位图（实验性）</string>
+    <string name="settings_ecarx_svg_test">测试箭头 SVG（实验性）</string>
+    <string name="settings_ecarx_arrow_bitmap_step">位图 %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_svg_step">SVG %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_shape_straight">直行</string>
+    <string name="settings_ecarx_arrow_shape_slight_left">左前</string>
+    <string name="settings_ecarx_arrow_shape_left">左转</string>
+    <string name="settings_ecarx_arrow_shape_sharp_left">左急转</string>
+    <string name="settings_ecarx_arrow_shape_slight_right">右前</string>
+    <string name="settings_ecarx_arrow_shape_right">右转</string>
+    <string name="settings_ecarx_arrow_shape_sharp_right">右急转</string>
+    <string name="settings_ecarx_arrow_shape_u_turn">掉头</string>
+    <string name="settings_ecarx_arrow_shape_roundabout">环岛</string>
+    <string name="settings_ecarx_arrow_shape_destination">到达</string>
 </resources>

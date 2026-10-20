@@ -974,4 +974,33 @@
 
     <string name="settings_hotspot_interface">熱點網路介面（選填）</string>
     <string name="settings_hotspot_interface_description">僅用於把熱點放在 Android 不認為是 Wi-Fi 熱點的網路介面上的車機，例如部分吉利、領克及其它高通車機上的 eth0.3。留空則自動尋找。</string>
+    <string name="settings_ecarx_title">儀表板導航（ECARX）</string>
+    <string name="settings_ecarx_navigation">儀表板顯示導航</string>
+    <string name="settings_ecarx_navigation_description">透過 ECARX DIM 介面把 CarPlay 的轉向箭頭、距離和路名傳送到車機儀表，資料不會離開車機。</string>
+    <string name="settings_ecarx_presentation">儀表板同步投屏</string>
+    <string name="settings_ecarx_presentation_description">請求車機在儀表板上同時顯示 DiPlay 畫面。平台不回傳是否成功，請以儀表實際顯示為準。</string>
+    <string name="settings_ecarx_navi_mode">儀表導航模式</string>
+    <string name="settings_ecarx_navi_mode_off">保持車機自帶導航</string>
+    <string name="settings_ecarx_navi_mode_on">優先使用 CarPlay 導航</string>
+    <string name="settings_ecarx_turn_arrow">原始轉向箭頭（實驗性）</string>
+    <string name="settings_ecarx_turn_arrow_description">額外把機動動作以數字箭頭傳給儀表。ECARX 的轉向 ID 表未經驗證，請先在車上核對箭頭方向。</string>
+    <string name="settings_ecarx_unavailable">車機拒絕了這次請求</string>
+    <string name="settings_ecarx_arrow_test">測試轉向 ID（實驗性）</string>
+    <string name="settings_ecarx_arrow_test_description">三個按鈕各自只呼叫對應的轉向箭頭介面，每 2 秒推進一步；再次按下會從頭開始。轉向 ID 從 0 到 60，點陣圖和 SVG 測試依序送直行、轉向、迴轉、圓環、抵達等基本圖形。</string>
+    <string name="settings_ecarx_arrow_test_idle">未在測試</string>
+    <string name="settings_ecarx_arrow_test_current">目前 ID %1$d</string>
+    <string name="settings_ecarx_bitmap_test">測試箭頭點陣圖（實驗性）</string>
+    <string name="settings_ecarx_svg_test">測試箭頭 SVG（實驗性）</string>
+    <string name="settings_ecarx_arrow_bitmap_step">點陣圖 %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_svg_step">SVG %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_shape_straight">直行</string>
+    <string name="settings_ecarx_arrow_shape_slight_left">左前</string>
+    <string name="settings_ecarx_arrow_shape_left">左轉</string>
+    <string name="settings_ecarx_arrow_shape_sharp_left">左急轉</string>
+    <string name="settings_ecarx_arrow_shape_slight_right">右前</string>
+    <string name="settings_ecarx_arrow_shape_right">右轉</string>
+    <string name="settings_ecarx_arrow_shape_sharp_right">右急轉</string>
+    <string name="settings_ecarx_arrow_shape_u_turn">迴轉</string>
+    <string name="settings_ecarx_arrow_shape_roundabout">圓環</string>
+    <string name="settings_ecarx_arrow_shape_destination">抵達</string>
 </resources>

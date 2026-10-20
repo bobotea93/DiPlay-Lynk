@@ -105,5 +105,27 @@ object EcarxOutputSettings {
 
     fun diagnosticReport(context: Context): String = EcarxHudBridge.diagnostics(context)
 
+    // ---------------------------------------------------------------- arrow-channel tests (diagnostic)
+
+    /**
+     * Runs one arrow channel for calibration: turn IDs 0..60, or the basic maneuvers through the
+     * bitmap or SVG overload, one step every 2 seconds. Applies at once, leaves the saved
+     * settings alone, and normal guidance resumes when the test ends. [onStep] runs on a worker
+     * thread.
+     */
+    fun startArrowTest(
+        context: Context,
+        kind: EcarxArrowTestKind,
+        onStep: (EcarxArrowTestStep) -> Unit,
+    ): Boolean {
+        EcarxHudBridge.initialize(context)
+        return EcarxHudBridge.startArrowTest(kind, onStep)
+    }
+
+    fun stopArrowTest() = EcarxHudBridge.stopArrowTest()
+
+    /** The last step a test pushed, or null when none has run in this process. */
+    fun arrowTestStep(): EcarxArrowTestStep? = EcarxHudBridge.arrowTestStep()
+
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 }

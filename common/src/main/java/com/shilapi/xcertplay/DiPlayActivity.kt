@@ -61,6 +61,9 @@ import com.shilapi.xcertplay.hud.BydNavigationOutputs
 import com.shilapi.xcertplay.hud.BydFieldSource
 import com.shilapi.xcertplay.hud.BydOutputSettings
 import com.shilapi.xcertplay.hud.BydVehicleCapabilities
+import com.shilapi.xcertplay.hud.EcarxArrowShape
+import com.shilapi.xcertplay.hud.EcarxArrowTestKind
+import com.shilapi.xcertplay.hud.EcarxArrowTestStep
 import com.shilapi.xcertplay.telecom.PhoneAudioRoute
 import com.shilapi.xcertplay.hud.BydVehicleField
 import com.shilapi.xcertplay.hud.BydVehicleFieldStore
@@ -193,6 +196,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     private var hotspotJoinControls: HotspotJoinControls? = null
     private var setupError: String? = null
     private var status: TextView? = null
+    /** The live readout of the ECARX arrow tests, null while its card is not on screen. */
+    private var ecarxArrowTestStatus: TextView? = null
     private var homeCardTitle: TextView? = null
     private var homeConnectionHint: TextView? = null
     private var connectButton: Button? = null
@@ -559,6 +564,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     }
 
     override fun onDestroy() {
+        com.shilapi.xcertplay.hud.EcarxOutputSettings.stopArrowTest()
+        ecarxArrowTestStatus = null
         com.shilapi.xcertplay.hud.EcarxIntegration.uninstall()
         settingsSearchPopup?.dismiss()
         appearanceObserverRemoval?.invoke()
@@ -1712,7 +1719,70 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         }
     }
 
+    /** One arrow-channel test button; [status] is the readout shared by the three tests. */
+    private fun ecarxArrowTestButton(labelRes: Int, kind: EcarxArrowTestKind, status: TextView) =
+        button(getString(labelRes), false) {
+            ecarxArrowTestStatus = status
+            val started = com.shilapi.xcertplay.hud.EcarxOutputSettings.startArrowTest(
+                this@DiPlayActivity, kind,
+            ) { step ->
+                handler.post {
+                    if (isFinishing || isDestroyed) return@post
+                    ecarxArrowTestStatus?.let { view ->
+                        view.text = ecarxArrowTestText(step)
+                        styleEcarxArrowTestStatus(view, active = true)
+                    }
+                }
+            }
+            if (!started) toast(getString(R.string.settings_ecarx_unavailable))
+        }
+
+    /** Names the step a test last pushed, for the Settings readout. */
+    private fun ecarxArrowTestText(step: EcarxArrowTestStep?): String {
+        if (step == null) return getString(R.string.settings_ecarx_arrow_test_idle)
+        return when (step.kind) {
+            EcarxArrowTestKind.TURN_ID ->
+                getString(R.string.settings_ecarx_arrow_test_current, step.turnId)
+            EcarxArrowTestKind.BITMAP -> getString(
+                R.string.settings_ecarx_arrow_bitmap_step,
+                step.index + 1, step.total, ecarxArrowShapeName(step.shape),
+            )
+            EcarxArrowTestKind.SVG -> getString(
+                R.string.settings_ecarx_arrow_svg_step,
+                step.index + 1, step.total, ecarxArrowShapeName(step.shape),
+            )
+        }
+    }
+
+    private fun ecarxArrowShapeName(shape: EcarxArrowShape?): String {
+        val name = when (shape) {
+            EcarxArrowShape.STRAIGHT -> R.string.settings_ecarx_arrow_shape_straight
+            EcarxArrowShape.SLIGHT_LEFT -> R.string.settings_ecarx_arrow_shape_slight_left
+            EcarxArrowShape.LEFT -> R.string.settings_ecarx_arrow_shape_left
+            EcarxArrowShape.SHARP_LEFT -> R.string.settings_ecarx_arrow_shape_sharp_left
+            EcarxArrowShape.SLIGHT_RIGHT -> R.string.settings_ecarx_arrow_shape_slight_right
+            EcarxArrowShape.RIGHT -> R.string.settings_ecarx_arrow_shape_right
+            EcarxArrowShape.SHARP_RIGHT -> R.string.settings_ecarx_arrow_shape_sharp_right
+            EcarxArrowShape.U_TURN -> R.string.settings_ecarx_arrow_shape_u_turn
+            EcarxArrowShape.ROUNDABOUT -> R.string.settings_ecarx_arrow_shape_roundabout
+            EcarxArrowShape.DESTINATION -> R.string.settings_ecarx_arrow_shape_destination
+            null -> return ""
+        }
+        return getString(name)
+    }
+
+    /** The readout stays small and muted until a test is running or has finished. */
+    private fun styleEcarxArrowTestStatus(view: TextView, active: Boolean) {
+        view.textSize = if (active) 24f else 16f
+        view.setTextColor(if (active) ACCENT else MUTED)
+        view.typeface = Typeface.create(
+            if (active) "sans-serif-medium" else "sans-serif", Typeface.NORMAL,
+        )
+    }
+
     private fun allSettingsSections(content: LinearLayout) {
+        // The page is rebuilt on every render; the tests write through the current reference only.
+        ecarxArrowTestStatus = null
         filteredSection(content, SettingsSection.CARPLAY_CONTROLS,
             getString(R.string.carplay_controls), R.drawable.ic_dp_controls) { card ->
             val gestureFingers = listOf(0, 2, 3, 4)
@@ -2404,6 +2474,26 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                 getString(R.string.settings_ecarx_turn_arrow_description), ecarx.turnArrowExperimental(this)) { on ->
                 ecarx.setTurnArrowExperimental(this, on)
             }
+            // The three arrow overloads are the open question on this head unit; each test drives
+            // exactly one of them. The readout follows the step that was actually pushed.
+            val initialStep = ecarx.arrowTestStep()
+            val testStatus = label(ecarxArrowTestText(initialStep), 16, MUTED)
+            styleEcarxArrowTestStatus(testStatus, active = initialStep != null)
+            card.addView(
+                ecarxArrowTestButton(R.string.settings_ecarx_arrow_test, EcarxArrowTestKind.TURN_ID, testStatus),
+                matchButton(0, 60),
+            )
+            card.addView(
+                ecarxArrowTestButton(R.string.settings_ecarx_bitmap_test, EcarxArrowTestKind.BITMAP, testStatus),
+                matchButton(0, 60),
+            )
+            card.addView(
+                ecarxArrowTestButton(R.string.settings_ecarx_svg_test, EcarxArrowTestKind.SVG, testStatus),
+                matchButton(0, 60),
+            )
+            card.addView(testStatus)
+            card.addView(label(getString(R.string.settings_ecarx_arrow_test_description), 14, MUTED))
+            ecarxArrowTestStatus = testStatus
         }
         // FCE head units show this card for their cluster's navigation view, which has its own opt-in.
         val bydNavigation = BydOutputSettings.available(this)

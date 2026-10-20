@@ -1029,4 +1029,22 @@
     <string name="settings_ecarx_turn_arrow">Raw turn arrow (experimental)</string>
     <string name="settings_ecarx_turn_arrow_description">Also sends each maneuver as a numeric arrow. The ECARX turn-id table is unverified, so check the arrow on the car before trusting it.</string>
     <string name="settings_ecarx_unavailable">The car rejected the request</string>
+    <string name="settings_ecarx_arrow_test">Test turn IDs (experimental)</string>
+    <string name="settings_ecarx_arrow_test_description">Each button pushes only the selected arrow call, one step every 2 seconds; press again to restart. Turn IDs run from 0 to 60, while the bitmap and SVG tests walk the basic maneuvers: straight, turns, U-turn, roundabout and destination.</string>
+    <string name="settings_ecarx_arrow_test_idle">No test running</string>
+    <string name="settings_ecarx_arrow_test_current">Turn ID %1$d</string>
+    <string name="settings_ecarx_bitmap_test">Test arrow bitmaps (experimental)</string>
+    <string name="settings_ecarx_svg_test">Test arrow SVG (experimental)</string>
+    <string name="settings_ecarx_arrow_bitmap_step">Bitmap %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_svg_step">SVG %1$d/%2$d · %3$s</string>
+    <string name="settings_ecarx_arrow_shape_straight">Straight</string>
+    <string name="settings_ecarx_arrow_shape_slight_left">Slight left</string>
+    <string name="settings_ecarx_arrow_shape_left">Left turn</string>
+    <string name="settings_ecarx_arrow_shape_sharp_left">Sharp left</string>
+    <string name="settings_ecarx_arrow_shape_slight_right">Slight right</string>
+    <string name="settings_ecarx_arrow_shape_right">Right turn</string>
+    <string name="settings_ecarx_arrow_shape_sharp_right">Sharp right</string>
+    <string name="settings_ecarx_arrow_shape_u_turn">U-turn</string>
+    <string name="settings_ecarx_arrow_shape_roundabout">Roundabout</string>
+    <string name="settings_ecarx_arrow_shape_destination">Destination</string>
 </resources>
