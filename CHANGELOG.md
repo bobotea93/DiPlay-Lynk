@@ -1,3 +1,10 @@
+# DiPlay 0.3.21 — 2026-10-20
+
+- SVG arrows redrawn on a 100x100 canvas with thick shafts and solid triangular heads, covering the full maneuver table.
+- Remove the diagnostic "1" road-name prefix now that the source is confirmed.
+- Hide the arrow-channel test card by default.
+- README: dashboard navigation and HUD arrow navigation are verified; junction lane selection is not implemented yet.
+
 # DiPlay 0.3.20 — 2026-10-20
 
 - Add an in-app ECARX arrow-channel calibration card: sweep turn IDs 0-60 through updateTurnByTurnArrow(int), and sweep the basic maneuvers through the Bitmap and SVG overloads, one step every 2 seconds.

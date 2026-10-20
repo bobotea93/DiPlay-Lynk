@@ -27,13 +27,19 @@
 
 平台识别不依赖车型字符串：只要系统里有 `com.ecarx.xui.adaptapi.diminteraction.DimInteraction`，或存在 ECARX 系统包，就会启用仪表相关功能；否则自动降级。
 
+## 功能状态
+
+- ✅ **仪表盘导航**：转向箭头、距离、路名、ETA
+- ✅ **HUD 箭头导航**：与仪表共用同一套 DIM 通道
+- ⚠️ **路口车道选择**：尚未实现。仪表可能显示每条车道的方向，但不会高亮推荐车道
+
 ## 本移植的改动
 
-- **仪表盘导航（ECARX DIM）**：把 CarPlay 的转向箭头、剩余距离、路名、ETA 与车道信息投送到仪表盘；全部通过反射调用车机 DIM 接口，不支持的车型上静默跳过。
-- **HUD 导航投送**：同一套 DIM 通道同时驱动车机 HUD 的导航卡片；车机不提供 HUD 接口时自动降级，只保留仪表盘输出。
+- **仪表盘导航（ECARX DIM）**：把 CarPlay 的转向箭头、剩余距离、路名、ETA 投送到仪表盘。箭头通过 `updateTurnByTurnArrow(String)` 的 SVG 通道绘制，已在实车确认可用；路口车道选择（推荐车道）尚未实现。全部通过反射调用车机 DIM 接口，不支持的车型上静默跳过。
+- **HUD 箭头导航**：同一套 DIM 通道同时驱动车机 HUD 的导航卡片，箭头已实车确认可用；车机不提供 HUD 接口时自动降级，只保留仪表盘输出。
 - **仪表投屏**：可把中控画面镜像到仪表盘，设置里单独开关。
 - **领克品牌**：默认车标与车辆名改为领克；旧的 BYD 默认值会自动迁移。
-- **全屏修复**：解决从后台返回时状态栏/导航栏重新出现的问题（insets 监听 + ECARX 原生标志位）。
+- **全屏处理**：从后台返回时保持全屏，回退到与上游一致的 WindowInsetsController 方案。
 - **BYD 功能裁剪**：移除 BYD 专属的 ADB 热点、仪表地图与氛围灯入口；通用能力（CarPlay、热点、仪表投屏、方控）保留。
 - **通用热点与开机自启**：恢复 Android 原生的车载热点设置；开机自启不再依赖网络 ADB。
 
@@ -59,7 +65,7 @@ export DIPLAY_AUTH_ASSETS_DIR=/path/to/mfi-assets   # 内含 offline-mfi/
 ```
 
 - 包名：`com.kakamatong.diplay.lynk`（debug 变体后缀 `.hudtest`）
-- 版本：versionCode 61 / versionName 0.3.20（领克移植线独立版本号，从 0.3.0 起与上游区分）
+- 版本：versionCode 62 / versionName 0.3.21（领克移植线独立版本号，从 0.3.0 起与上游区分）
 - 签名：AOSP platform 测试密钥；只对 `test-keys` 固件的车机有效
 
 没有 MFi 资产时 App 能安装启动，但 CarPlay 无法完成认证。
