@@ -1,3 +1,9 @@
+# DiPlay 0.3.19 — 2026-10-20
+
+- Diagnostic marker: every non-empty road name sent to ECARX is prefixed with "1", so a road shown on the cluster can be traced back to DiPlay's data.
+- Record lastArrowSvgHead and arrowOverloads in the report; the arrow timeline includes the SVG length.
+- The 0.3.18 String-SVG arrow experiment is unchanged.
+
 # DiPlay 0.3.18 — 2026-10-20
 
 - Diagnostic: all arrows now go through the third updateTurnByTurnArrow(String) overload with a minimal per-maneuver SVG; int and bitmap remain as fallbacks when the String call fails.
