@@ -108,6 +108,8 @@ internal object EcarxHudBridge {
     private var lastArrowType = "none"
     private var lastArrowDirection = "none"
     private var lastArrowCode = "none"
+    /** Last handful of arrow pushes, so a straight segment can be told apart from a cleared route. */
+    private val arrowTimeline = ArrayDeque<String>()
     private var lastGuidanceTurnId = "none"
     private var lastGuidanceDrivingDirection = "none"
     private var lastSvgLength = 0
@@ -399,6 +401,18 @@ internal object EcarxHudBridge {
             val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
             if (arrow.ok) {
                 lastArrowPush = "int-ok"
+                if (code == 16) {
+                    // The cluster accepts 16 but draws no straight arrow on this firmware.
+                    // Push a locally drawn up arrow through the code-table-free Bitmap channel
+                    // as well, so a straight segment has a visible icon if the device honours it.
+                    val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
+                    if (bitmap != null) {
+                        val straight = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+                        lastArrowChannel = "int-amap+bitmap-straight"
+                        lastArrowPush =
+                            if (straight.ok) "int-ok+bitmap-ok" else "int-ok+bitmap-failed:" + straight.reason
+                    }
+                }
             } else {
                 // The int overload is missing or rejected; the locally drawn bitmap is the one
                 // code-table-free channel and stays as the fallback.
@@ -410,6 +424,10 @@ internal object EcarxHudBridge {
                     lastArrowPush = if (fallback.ok) "bitmap-ok" else "bitmap-failed:" + fallback.reason
                 }
             }
+            val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+                .format(java.util.Date())
+            arrowTimeline.addLast("$stamp t=${maneuver.type} c=$code d=${maneuver.distanceMeters} $lastArrowPush")
+            while (arrowTimeline.size > 12) arrowTimeline.removeFirst()
         }
 
         lastPushed = guidance
@@ -693,6 +711,7 @@ internal object EcarxHudBridge {
             append(" lastArrowType=").append(lastArrowType)
             append(" lastArrowDirection=").append(lastArrowDirection)
             append(" lastArrowCode=").append(lastArrowCode)
+            append(" arrowTimeline=").append(arrowTimeline.joinToString("|"))
             append(" guidanceTurnId=").append(lastGuidanceTurnId)
             append(" guidanceDrivingDirection=").append(lastGuidanceDrivingDirection)
             append(" lastSvgLength=").append(lastSvgLength)

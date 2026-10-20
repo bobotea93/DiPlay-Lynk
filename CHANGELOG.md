@@ -1,3 +1,9 @@
+# DiPlay 0.3.13 — 2026-10-20
+
+- Straight maneuvers (AutoNavi code 16) also push a locally drawn up-arrow bitmap after the int call, to test whether the cluster honours the bitmap channel where it ignores 16.
+- Add arrowTimeline to the diagnostic report: the last 12 arrow pushes with time, Apple type, AutoNavi code, distance and result.
+- No change to the turn codes: 19 (left) and 20 (right) are verified on the car.
+
 # DiPlay 0.3.12 — 2026-10-19
 
 - Hide the car-hotspot search entry on Android versions where the app cannot start tethering, matching the settings card that is already hidden there.
