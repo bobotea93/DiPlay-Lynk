@@ -65,6 +65,11 @@ internal class RouteGuidanceState(
      * Arrived (2) still ends the route. The overlay's own stale window retires a truly ended one.
      */
     private val keepAcrossNoRoute: Boolean = false,
+    /**
+     * Cluster outputs keep the last arrow across sparse route frames. Empty maneuver lists are
+     * ignored and only an explicit end (NoRouteSet/Arrived) or a session teardown clears it.
+     */
+    private val keepAcrossGaps: Boolean = false,
 ) {
     private data class Maneuver(val type: Int, val drivingSide: Int, val afterRoad: String)
 
@@ -131,10 +136,12 @@ internal class RouteGuidanceState(
 
     private fun activeManeuver(): Maneuver? {
         if (!routeActive || activeIndex < 0) return null
-        val updated = lastRouteUpdateNs ?: return null
-        if (nanoTime() - updated >= staleRouteNs) return null
-        val emptySince = emptyListSinceNs
-        if (emptySince != null && nanoTime() - emptySince >= emptyListHideNs) return null
+        if (!keepAcrossGaps) {
+            val updated = lastRouteUpdateNs ?: return null
+            if (nanoTime() - updated >= staleRouteNs) return null
+            val emptySince = emptyListSinceNs
+            if (emptySince != null && nanoTime() - emptySince >= emptyListHideNs) return null
+        }
         return maneuvers[activeIndex]
     }
 
@@ -191,6 +198,9 @@ internal class RouteGuidanceState(
         // maneuver (and the cached 0x5202 details, which are never resent) and hide it only if the list stays
         // empty; the outputs' 1 s tick clears themselves once current() turns null.
         if (listPresent && firstManeuver == null) {
+            // An empty current list is not "navigation ended". The ECARX cluster keeps the last
+            // arrow until an explicit end or a session teardown clears it.
+            if (keepAcrossGaps) return RouteGuidanceChange.NONE
             if (emptyListSinceNs == null) emptyListSinceNs = nanoTime()
             return RouteGuidanceChange.NONE
         }

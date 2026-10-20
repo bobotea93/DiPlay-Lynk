@@ -75,7 +75,7 @@ internal object EcarxHudBridge {
     private const val PRESENTATION_SLOW_SECONDS = 10
 
     private val lock = Any()
-    private val route = RouteGuidanceState()
+    private val route = RouteGuidanceState(keepAcrossGaps = true)
     private var context: Context? = null
     private var available = false
     private var dim: Any? = null
@@ -108,6 +108,7 @@ internal object EcarxHudBridge {
     private var lastArrowType = "none"
     private var lastArrowDirection = "none"
     private var lastArrowCode = "none"
+    private var lastArrowCodeValue = 0
     /** Last handful of arrow pushes, so a straight segment can be told apart from a cleared route. */
     private val arrowTimeline = ArrayDeque<String>()
     private var lastGuidanceTurnId = "none"
@@ -156,6 +157,8 @@ internal object EcarxHudBridge {
         // back with the engine already running restores the cluster without the user touching it.
         presentationWanted = EcarxOutputSettings.presentationSwitch(app)
         reclaimLocked()
+        // A new process must not inherit an arrow left on the cluster by the previous one.
+        endLocked()
         watchDisplaysLocked(app)
         Log.i(
             TAG,
@@ -243,7 +246,9 @@ internal object EcarxHudBridge {
 
     fun clear() = synchronized(lock) {
         route.clear() // Stop the keepalive from restoring guidance after cleanup.
-        if (lastPushed != null) endLocked()
+        // Send the clear even when this process never pushed: after a restart the cluster may
+        // still show the arrow left by the previous process.
+        endLocked()
     }
 
     /** Whether guidance is currently on the cluster. */
@@ -396,37 +401,33 @@ internal object EcarxHudBridge {
             lastArrowType = maneuver.type.toString()
             lastArrowDirection = maneuver.drivingSide.toString()
             val code = amapTurnCode(maneuver.type, maneuver.drivingSide)
-            lastArrowCode = code.toString()
-            lastArrowChannel = "int-amap"
-            val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
-            if (arrow.ok) {
-                lastArrowPush = "int-ok"
-                if (code == 16) {
-                    // The cluster accepts 16 but draws no straight arrow on this firmware.
-                    // Push a locally drawn up arrow through the code-table-free Bitmap channel
-                    // as well, so a straight segment has a visible icon if the device honours it.
+            if (code == null) {
+                // Unknown maneuver: keep the previous arrow instead of overwriting it with a guess.
+                lastArrowPush = "int-skipped-unknown"
+                lastArrowChannel = "int-amap-skip"
+            } else {
+                lastArrowCodeValue = code
+                lastArrowCode = code.toString()
+                lastArrowChannel = "int-amap"
+                val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
+                if (arrow.ok) {
+                    lastArrowPush = "int-ok"
+                } else {
+                    // The int overload is missing or rejected; the locally drawn bitmap is the one
+                    // code-table-free channel and stays as the fallback.
+                    lastArrowPush = "int-failed:" + arrow.reason
                     val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
                     if (bitmap != null) {
-                        val straight = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
-                        lastArrowChannel = "int-amap+bitmap-straight"
-                        lastArrowPush =
-                            if (straight.ok) "int-ok+bitmap-ok" else "int-ok+bitmap-failed:" + straight.reason
+                        val fallback = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+                        lastArrowChannel = "bitmap"
+                        lastArrowPush = if (fallback.ok) "bitmap-ok" else "bitmap-failed:" + fallback.reason
                     }
-                }
-            } else {
-                // The int overload is missing or rejected; the locally drawn bitmap is the one
-                // code-table-free channel and stays as the fallback.
-                lastArrowPush = "int-failed:" + arrow.reason
-                val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
-                if (bitmap != null) {
-                    val fallback = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
-                    lastArrowChannel = "bitmap"
-                    lastArrowPush = if (fallback.ok) "bitmap-ok" else "bitmap-failed:" + fallback.reason
                 }
             }
             val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
                 .format(java.util.Date())
-            arrowTimeline.addLast("$stamp t=${maneuver.type} c=$code d=${maneuver.distanceMeters} $lastArrowPush")
+            val codeText = code?.toString() ?: "skip"
+            arrowTimeline.addLast("$stamp t=${maneuver.type} c=$codeText d=${maneuver.distanceMeters} $lastArrowPush")
             while (arrowTimeline.size > 12) arrowTimeline.removeFirst()
         }
 
@@ -472,7 +473,7 @@ internal object EcarxHudBridge {
         return EcarxDimApi.Guidance(
             // Experiment 0.3.11: the guidance payload also carries the AutoNavi code, so the
             // cluster's own navigation arrow and the explicit int arrow agree on one namespace.
-            turnId = amapTurnCode(maneuver.type, maneuver.drivingSide),
+            turnId = amapTurnCode(maneuver.type, maneuver.drivingSide) ?: lastArrowCodeValue,
             distanceToNextMeters = maneuver.distanceMeters.toLong(),
             distanceToDestinationMeters = maneuver.remainingMeters ?: -1L,
             etaEpochSeconds = maneuver.arrivalEpochSeconds ?: -1L,
@@ -524,7 +525,7 @@ internal object EcarxHudBridge {
      * 0.3.11 experiment: the ECARX int overload receives these instead of Apple's maneuver type.
      * Unknown maneuvers fall back to straight (16) so the cluster always has a drawable code.
      */
-    private fun amapTurnCode(type: Int, drivingSide: Int): Int = when (type) {
+    private fun amapTurnCode(type: Int, drivingSide: Int): Int? = when (type) {
         1, 20 -> 19
         2, 21 -> 20
         47 -> 21
@@ -534,7 +535,7 @@ internal object EcarxHudBridge {
         4, 18, 19, 26 -> if (drivingSide == 1) 24 else 23
         6, 7, in 28..46 -> 52
         10, 12, 24, 25, 27 -> 3
-        else -> 16
+        else -> null
     }
 
     /**

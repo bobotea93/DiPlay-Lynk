@@ -353,6 +353,8 @@ class CarPlayController(
             if (currentCornerMask?.session !== session) currentCornerMask = null
             val replacement = activeSession !== session
             if (replacement) {
+                // ECARX：新会话开始前先清掉上一条会话的箭头，避免旧状态压到新数据上。
+                runCatching { com.shilapi.xcertplay.hud.EcarxHudBridge.clear() }
                 BydNavigationOutputs.start(appContext)
                 BydNavigationOutputs.carPlaySessionStarted()
                 com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(true)

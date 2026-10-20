@@ -1,3 +1,11 @@
+# DiPlay 0.3.14 — 2026-10-20
+
+- Remove timer-based arrow clearing for the ECARX cluster: route state no longer expires after 30 s or hides after a 3 s empty list, so the 40-70 s gap between 0x5201 frames no longer wipes the arrow.
+- Empty maneuver lists are ignored; the arrow is cleared only on NoRouteSet/Arrived, session end, session rebuild or process restart.
+- Unknown maneuver types no longer overwrite the last arrow; the previous AutoNavi code stays on the cluster.
+- Clear the cluster arrow immediately when a new process initializes and when a CarPlay session is replaced, before new guidance arrives.
+- Keep the 5 s keepalive re-push; it never clears.
+
 # DiPlay 0.3.13 — 2026-10-20
 
 - Straight maneuvers (AutoNavi code 16) also push a locally drawn up-arrow bitmap after the int call, to test whether the cluster honours the bitmap channel where it ignores 16.
