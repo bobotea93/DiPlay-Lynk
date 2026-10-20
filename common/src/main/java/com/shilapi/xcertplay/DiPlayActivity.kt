@@ -2475,26 +2475,30 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                 getString(R.string.settings_ecarx_turn_arrow_description), ecarx.turnArrowExperimental(this)) { on ->
                 ecarx.setTurnArrowExperimental(this, on)
             }
-            // The three arrow overloads are the open question on this head unit; each test drives
-            // exactly one of them. The readout follows the step that was actually pushed.
-            val initialStep = ecarx.arrowTestStep()
-            val testStatus = label(ecarxArrowTestText(initialStep), 16, MUTED)
-            styleEcarxArrowTestStatus(testStatus, active = initialStep != null)
-            card.addView(
-                ecarxArrowTestButton(R.string.settings_ecarx_arrow_test, EcarxArrowTestKind.TURN_ID, testStatus),
-                matchButton(0, 60),
-            )
-            card.addView(
-                ecarxArrowTestButton(R.string.settings_ecarx_bitmap_test, EcarxArrowTestKind.BITMAP, testStatus),
-                matchButton(0, 60),
-            )
-            card.addView(
-                ecarxArrowTestButton(R.string.settings_ecarx_svg_test, EcarxArrowTestKind.SVG, testStatus),
-                matchButton(0, 60),
-            )
-            card.addView(testStatus)
-            card.addView(label(getString(R.string.settings_ecarx_arrow_test_description), 14, MUTED))
-            ecarxArrowTestStatus = testStatus
+            // The arrow-channel tests are calibration aids, not everyday settings, so they are
+            // hidden by default; flip SHOW_ECARX_ARROW_TESTS to bring the card back.
+            if (SHOW_ECARX_ARROW_TESTS) {
+                // The three arrow overloads are the open question on this head unit; each test
+                // drives exactly one of them. The readout follows the step actually pushed.
+                val initialStep = ecarx.arrowTestStep()
+                val testStatus = label(ecarxArrowTestText(initialStep), 16, MUTED)
+                styleEcarxArrowTestStatus(testStatus, active = initialStep != null)
+                card.addView(
+                    ecarxArrowTestButton(R.string.settings_ecarx_arrow_test, EcarxArrowTestKind.TURN_ID, testStatus),
+                    matchButton(0, 60),
+                )
+                card.addView(
+                    ecarxArrowTestButton(R.string.settings_ecarx_bitmap_test, EcarxArrowTestKind.BITMAP, testStatus),
+                    matchButton(0, 60),
+                )
+                card.addView(
+                    ecarxArrowTestButton(R.string.settings_ecarx_svg_test, EcarxArrowTestKind.SVG, testStatus),
+                    matchButton(0, 60),
+                )
+                card.addView(testStatus)
+                card.addView(label(getString(R.string.settings_ecarx_arrow_test_description), 14, MUTED))
+                ecarxArrowTestStatus = testStatus
+            }
         }
         // FCE head units show this card for their cluster's navigation view, which has its own opt-in.
         val bydNavigation = BydOutputSettings.available(this)
@@ -6804,5 +6808,13 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         private const val NOTE_LINE_GAP_DP = 4
         private const val NOTE_ATTACH_GAP_DP = 6
         private const val SETTINGS_BLOCK_GAP_DP = 16
+
+        /**
+         * Shows the ECARX arrow-channel tests (turn IDs, bitmaps, SVG) in Settings → Advanced.
+         *
+         * They are calibration aids rather than everyday settings, so the card is hidden by
+         * default. The code behind it stays in place; flip this to true to bring it back.
+         */
+        private const val SHOW_ECARX_ARROW_TESTS = false
     }
 }
