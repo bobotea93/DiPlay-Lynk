@@ -989,7 +989,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">يمين قليلًا</string>
     <string name="settings_ecarx_arrow_shape_right">يمين</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">يمين حاد</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">دوران للخلف</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">دوران للخلف إلى اليسار</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">دوران للخلف إلى اليمين</string>
     <string name="settings_ecarx_arrow_shape_roundabout">دوار</string>
     <string name="settings_ecarx_arrow_shape_destination">الوصول</string>
 </resources>

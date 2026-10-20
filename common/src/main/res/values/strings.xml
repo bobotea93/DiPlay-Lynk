@@ -1044,7 +1044,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">Slight right</string>
     <string name="settings_ecarx_arrow_shape_right">Right turn</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">Sharp right</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">U-turn</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">U-turn left</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">U-turn right</string>
     <string name="settings_ecarx_arrow_shape_roundabout">Roundabout</string>
     <string name="settings_ecarx_arrow_shape_destination">Destination</string>
 </resources>

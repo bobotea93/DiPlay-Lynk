@@ -27,7 +27,8 @@ enum class EcarxArrowShape(internal val appleType: Int, internal val drivingSide
     SLIGHT_RIGHT(14, 0),
     RIGHT(2, 0),
     SHARP_RIGHT(48, 0),
-    U_TURN(4, 0),
+    U_TURN_LEFT(4, 0),
+    U_TURN_RIGHT(4, 1),
     ROUNDABOUT(6, 0),
     DESTINATION(10, 0),
 }

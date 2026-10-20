@@ -940,7 +940,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">Ligeramente a la derecha</string>
     <string name="settings_ecarx_arrow_shape_right">Derecha</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">Giro cerrado a la derecha</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">Cambio de sentido</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">Cambio de sentido a la izquierda</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">Cambio de sentido a la derecha</string>
     <string name="settings_ecarx_arrow_shape_roundabout">Rotonda</string>
     <string name="settings_ecarx_arrow_shape_destination">Llegada</string>
 </resources>

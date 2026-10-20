@@ -1000,7 +1000,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">右前</string>
     <string name="settings_ecarx_arrow_shape_right">右轉</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">右急轉</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">迴轉</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">左迴轉</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">右迴轉</string>
     <string name="settings_ecarx_arrow_shape_roundabout">圓環</string>
     <string name="settings_ecarx_arrow_shape_destination">抵達</string>
 </resources>

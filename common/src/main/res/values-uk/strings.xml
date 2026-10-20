@@ -952,7 +952,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">Плавно вправо</string>
     <string name="settings_ecarx_arrow_shape_right">Вправо</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">Різко вправо</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">Розворот</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">Розворот вліво</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">Розворот вправо</string>
     <string name="settings_ecarx_arrow_shape_roundabout">Круговий рух</string>
     <string name="settings_ecarx_arrow_shape_destination">Прибуття</string>
 </resources>

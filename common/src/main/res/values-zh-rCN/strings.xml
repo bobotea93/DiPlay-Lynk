@@ -1001,7 +1001,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">右前</string>
     <string name="settings_ecarx_arrow_shape_right">右转</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">右急转</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">掉头</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">左掉头</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">右掉头</string>
     <string name="settings_ecarx_arrow_shape_roundabout">环岛</string>
     <string name="settings_ecarx_arrow_shape_destination">到达</string>
 </resources>

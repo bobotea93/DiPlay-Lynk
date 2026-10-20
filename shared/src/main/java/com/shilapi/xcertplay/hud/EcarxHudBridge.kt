@@ -579,7 +579,7 @@ internal object EcarxHudBridge {
         maneuver.remainingMeters?.let { EcarxDimApi.updateDistanceToDestination(naviRef, it) }
         maneuver.arrivalEpochSeconds?.let { EcarxDimApi.updateEta(naviRef, it) }
         maneuver.road.takeIf { it.isNotEmpty() }
-            ?.let { EcarxDimApi.updateNextGuidancePointName(naviRef, taggedRoad(it)) }
+            ?.let { EcarxDimApi.updateNextGuidancePointName(naviRef, it) }
         if (EcarxOutputSettings.turnArrowExperimental(app)) {
             // The int overload has no recovered code table, so draw the arrow locally and push it
             // through the (Bitmap) overload instead — the one code-table-free channel the device
@@ -694,7 +694,7 @@ internal object EcarxHudBridge {
             status = NAVI_STATUS_ACTIVE,
             muteState = 0,
             dayNightMode = dayNightMode(),
-            nextGuidancePointName = taggedRoad(maneuver.road),
+            nextGuidancePointName = maneuver.road,
             navigationTurnSvg = turnArrowSvg(maneuver.type, maneuver.drivingSide),
         )
     }
@@ -706,38 +706,96 @@ internal object EcarxHudBridge {
         return if (night == Configuration.UI_MODE_NIGHT_YES) 1 else 0
     }
 
-    /** A minimal SVG for the ECARX INavigationInfo.getNavigationTurnSVG() channel. */
+    /**
+     * The arrow icon for `INavigationInfo.getNavigationTurnSVG()`: a 100×100 canvas with thick
+     * shafts and solid triangular heads, so it stays visible when the cluster scales it down.
+     *
+     * The mapping follows the iAP2 RouteGuidanceManeuverType table in
+     * docs/ROUTE_GUIDANCE_PROTOCOL.md: 1 left, 2 right, 3/5/11 straight, 4/18/19/26 U-turn,
+     * 6/7/28–46 roundabout (the exit number is not encoded), 8 off-ramp, 9 on-ramp, 10/12/27
+     * destination, 13/14 keep left/right, 15–17 ferry, 20/21 end-of-road left/right, 22/23 highway
+     * exit, 24/25 arrival side, 47/48 sharp, 49/50 slight, 51 change highway, 52/53 change highway
+     * left/right.
+     *
+     * A U-turn and an off-/on-ramp follow [drivingSide] (0 = right-hand traffic, 1 = left-hand
+     * traffic), which is the side the maneuver actually takes in that country.
+     *
+     * An unmapped type returns an empty string: nothing is pushed, so the cluster keeps the arrow
+     * it already had instead of receiving a guess.
+     */
     private fun turnArrowSvg(type: Int, drivingSide: Int): String {
+        val leftHandTraffic = drivingSide == 1
+        // A U-turn crosses the oncoming lane, so it goes left in right-hand traffic and vice versa.
+        val uTurn = if (leftHandTraffic) {
+            "<path d='M30 92 V54 A20 20 0 0 1 70 54 V70'/>" + arrowHead(70.0, 90.0, 90.0)
+        } else {
+            "<path d='M70 92 V54 A20 20 0 0 0 30 54 V70'/>" + arrowHead(30.0, 90.0, 90.0)
+        }
+        val exitRight = "<path d='M36 92 V20 M36 62 L66 38'/>" +
+            arrowHead(82.0, 26.0, -38.7)
+        val exitLeft = "<path d='M64 92 V20 M64 62 L34 38'/>" +
+            arrowHead(18.0, 26.0, -141.3)
+        val mergeRight = "<path d='M44 92 V40 M78 84 L46 56'/>" + arrowHead(44.0, 20.0, -90.0)
+        val mergeLeft = "<path d='M56 92 V40 M22 84 L54 56'/>" + arrowHead(56.0, 20.0, -90.0)
         val shape = when (type) {
-            1, 20 -> "<path d='M32 56 V24 M32 24 L12 24 M12 24 L20 16 M12 24 L20 32'/>"
-            2, 21 -> "<path d='M32 56 V24 M32 24 L52 24 M52 24 L44 16 M52 24 L44 32'/>"
-            47 -> "<path d='M48 52 L16 20 M16 20 L28 20 M16 20 L16 32'/>"
-            48 -> "<path d='M16 52 L48 20 M48 20 L36 20 M48 20 L48 32'/>"
-            13, 22, 49, 52 -> "<path d='M32 56 V24 M32 24 L16 16 M16 16 L28 16'/>"
-            14, 23, 50, 53 -> "<path d='M32 56 V24 M32 24 L48 16 M48 16 L36 16'/>"
-            4, 18, 19, 26 -> "<path d='M40 56 V32 A12 12 0 0 1 16 32 V24 M16 24 L8 32 M16 24 L24 32'/>"
-            6, 7, in 28..46 -> "<circle cx='32' cy='32' r='13'/><path d='M32 56 V45 M45 32 L52 32 M52 32 L46 26 M52 32 L46 38'/>"
-            10, 12, 24, 25, 27 -> "<circle cx='32' cy='32' r='6'/><circle cx='32' cy='32' r='13'/>"
-            3, 5, 8, 9, 11, 51 -> "<path d='M32 56 V12 M32 12 L22 22 M32 12 L42 22'/>"
+            1, 20 -> "<path d='M50 92 V44 H36'/>" + arrowHead(10.0, 44.0, 180.0)
+            2, 21 -> "<path d='M50 92 V44 H64'/>" + arrowHead(90.0, 44.0, 0.0)
+            3, 5, 11 -> "<path d='M50 92 V42'/>" + arrowHead(50.0, 22.0, -90.0)
+            4, 18, 19, 26 -> uTurn
+            6, 7, in 28..46 ->
+                // Circle plus an entry stub: the exit number cannot be encoded anyway, and a
+                // triangle on the ring would merge into it at this stroke width.
+                "<circle cx='50' cy='50' r='24'/><path d='M50 92 V76'/>"
+            8 -> if (leftHandTraffic) exitLeft else exitRight
+            9, 51 -> if (leftHandTraffic) mergeLeft else mergeRight
+            10, 12, 25, 27 -> "<path d='M44 90 V12 M44 12 H80 V48 H44'/>"
+            13 -> "<path d='M50 92 V58 L34 42 M50 58 L72 36'/>" +
+                arrowHead(20.0, 28.0, -135.0)
+            14 -> "<path d='M50 92 V58 L66 42 M50 58 L28 36'/>" +
+                arrowHead(80.0, 28.0, -45.0)
+            15, 16, 17 ->
+                "<path d='M18 54 H82 L70 80 H30 Z M16 92 Q28 86 40 92 T64 92 T84 92'/>"
+            22 -> exitLeft
+            23 -> exitRight
+            24 -> "<path d='M56 90 V12 M56 12 H20 V48 H56'/>"
+            47 -> "<path d='M62 92 V50 L40 56'/>" + arrowHead(15.0, 63.0, 164.8)
+            48 -> "<path d='M38 92 V50 L60 56'/>" + arrowHead(85.0, 63.0, 15.2)
+            49, 52 -> "<path d='M50 92 V62 L34 46'/>" + arrowHead(20.0, 32.0, -135.0)
+            50, 53 -> "<path d='M50 92 V62 L66 46'/>" + arrowHead(80.0, 32.0, -45.0)
             else -> ""
         }
         if (shape.isEmpty()) return ""
-        return "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
-            "<g fill='none' stroke='#FFFFFF' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'>" +
+        return "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' " +
+            "viewBox='0 0 100 100'>" +
+            "<g fill='none' stroke='#FFFFFF' stroke-width='12' stroke-linecap='round' " +
+            "stroke-linejoin='round'>" +
             shape + "</g></svg>"
     }
 
+    /** Solid arrowhead geometry, in the 100-unit icon box. */
+    private const val ARROW_HEAD_LENGTH = 26.0
+    private const val ARROW_HEAD_HALF_WIDTH = 20.0
+
     /**
-     * AutoNavi (高德) turn-by-turn icon codes, the table Chinese head units commonly use.
-     *
-     * Recovered from the FCE/Coagent cluster channel (DiPlay 0.2.18 `FceClusterIcons`), where the
-     * same numbers reach the cluster MCU: straight 16, slight right 17, slight left 18, left 19,
-     * right 20, sharp left 21, sharp right 22, u-turn left 23, u-turn right 24, destination 3,
-     * roundabout exits 1-10 = 42-51, roundabout 52, roundabout enter 53.
-     *
-     * 0.3.11 experiment: the ECARX int overload receives these instead of Apple's maneuver type.
-     * Unknown maneuvers fall back to straight (16) so the cluster always has a drawable code.
+     * A filled triangular arrowhead at ([tipX], [tipY]) pointing along [angleDegrees]
+     * (0 = right, 90 = down). A shaft must stop before the tip; the ones in [turnArrowSvg] end
+     * inside the triangle, so their round caps stay hidden and never poke past the point.
      */
+    private fun arrowHead(tipX: Double, tipY: Double, angleDegrees: Double): String {
+        val radians = Math.toRadians(angleDegrees)
+        val dx = kotlin.math.cos(radians)
+        val dy = kotlin.math.sin(radians)
+        val baseX = tipX - ARROW_HEAD_LENGTH * dx
+        val baseY = tipY - ARROW_HEAD_LENGTH * dy
+        val offsetX = -dy * ARROW_HEAD_HALF_WIDTH
+        val offsetY = dx * ARROW_HEAD_HALF_WIDTH
+        fun round(value: Double) = Math.round(value).toString()
+        return "<path d='M${round(tipX)} ${round(tipY)} " +
+            "L${round(baseX + offsetX)} ${round(baseY + offsetY)} " +
+            "L${round(baseX - offsetX)} ${round(baseY - offsetY)} Z' " +
+            "fill='#FFFFFF' stroke='none'/>"
+    }
+
     /** Lists the updateTurnByTurnArrow parameter signatures the platform exposes. */
     private fun arrowOverloads(): String {
         val naviRef = navi ?: return "no-navi"
@@ -751,22 +809,34 @@ internal object EcarxHudBridge {
         }.getOrDefault("probe-failed")
     }
 
-    /** Diagnostic marker: prefix every non-empty road name so the cluster display can be traced. */
-    private fun taggedRoad(road: String): String = if (road.isEmpty()) road else "1$road"
-
     /** Human label for an Apple maneuver type, for the diagnostic timelines only. */
     private fun maneuverLabel(type: Int): String = when (type) {
+        0 -> "无转向"
         1, 20 -> "左转"
         2, 21 -> "右转"
+        3, 5, 11 -> "直行"
+        4, 18, 19, 26 -> "掉头"
+        6 -> "进入环岛"
+        7, in 28..46 -> "驶出环岛"
+        8 -> "驶离匝道"
+        9 -> "驶入匝道"
+        10, 12 -> "到达终点"
+        13 -> "靠左"
+        14 -> "靠右"
+        15, 16, 17 -> "渡口"
+        22 -> "高速左出口"
+        23 -> "高速右出口"
+        24 -> "左侧到达"
+        25 -> "右侧到达"
+        27 -> "指引结束"
         47 -> "左急转"
         48 -> "右急转"
-        13, 22, 49, 52 -> "左前"
-        14, 23, 50, 53 -> "右前"
-        4, 18, 19, 26 -> "掉头"
-        6, 7, in 28..46 -> "环岛"
-        10, 12, 24, 25, 27 -> "到达"
-        3, 5, 8, 9, 11, 51 -> "直行"
-        else -> "未知"
+        49 -> "左前"
+        50 -> "右前"
+        51 -> "变换高速"
+        52 -> "向左变换高速"
+        53 -> "向右变换高速"
+        else -> "未知($type)"
     }
 
     /** Records one parsed 0x5202 maneuver for the next diagnostic report. */
@@ -778,9 +848,21 @@ internal object EcarxHudBridge {
 
     }
 
+    /**
+     * AutoNavi (高德) turn-by-turn icon codes, the table Chinese head units commonly use.
+     *
+     * Recovered from the FCE/Coagent cluster channel (DiPlay 0.2.18 `FceClusterIcons`), where the
+     * same numbers reach the cluster MCU: straight 16, slight right 17, slight left 18, left 19,
+     * right 20, sharp left 21, sharp right 22, u-turn left 23, u-turn right 24, destination 3,
+     * roundabout exits 1-10 = 42-51, roundabout 52, roundabout enter 53.
+     *
+     * The ECARX int overload receives these instead of Apple's maneuver type (0.3.11 experiment).
+     * Types with no known AutoNavi code return null, so no int is pushed for them.
+     */
     private fun amapTurnCode(type: Int, drivingSide: Int): Int? = when (type) {
         1, 20 -> 19
         2, 21 -> 20
+        3, 5, 11 -> 16
         47 -> 21
         48 -> 22
         13, 22, 49, 52 -> 18

@@ -1763,7 +1763,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             EcarxArrowShape.SLIGHT_RIGHT -> R.string.settings_ecarx_arrow_shape_slight_right
             EcarxArrowShape.RIGHT -> R.string.settings_ecarx_arrow_shape_right
             EcarxArrowShape.SHARP_RIGHT -> R.string.settings_ecarx_arrow_shape_sharp_right
-            EcarxArrowShape.U_TURN -> R.string.settings_ecarx_arrow_shape_u_turn
+            EcarxArrowShape.U_TURN_LEFT -> R.string.settings_ecarx_arrow_shape_u_turn_left
+            EcarxArrowShape.U_TURN_RIGHT -> R.string.settings_ecarx_arrow_shape_u_turn_right
             EcarxArrowShape.ROUNDABOUT -> R.string.settings_ecarx_arrow_shape_roundabout
             EcarxArrowShape.DESTINATION -> R.string.settings_ecarx_arrow_shape_destination
             null -> return ""

@@ -1030,7 +1030,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">Leggermente a destra</string>
     <string name="settings_ecarx_arrow_shape_right">A destra</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">Curva stretta a destra</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">Inversione a U</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">Inversione a U a sinistra</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">Inversione a U a destra</string>
     <string name="settings_ecarx_arrow_shape_roundabout">Rotatoria</string>
     <string name="settings_ecarx_arrow_shape_destination">Arrivo</string>
 </resources>

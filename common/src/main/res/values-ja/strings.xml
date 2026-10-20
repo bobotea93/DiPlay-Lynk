@@ -1042,7 +1042,8 @@
     <string name="settings_ecarx_arrow_shape_slight_right">右前方</string>
     <string name="settings_ecarx_arrow_shape_right">右折</string>
     <string name="settings_ecarx_arrow_shape_sharp_right">右急カーブ</string>
-    <string name="settings_ecarx_arrow_shape_u_turn">Uターン</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_left">左Uターン</string>
+    <string name="settings_ecarx_arrow_shape_u_turn_right">右Uターン</string>
     <string name="settings_ecarx_arrow_shape_roundabout">ラウンドアバウト</string>
     <string name="settings_ecarx_arrow_shape_destination">到着</string>
 </resources>
