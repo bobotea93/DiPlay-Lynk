@@ -140,7 +140,6 @@ internal object EcarxHudBridge {
     private var lastArrowDirection = "none"
     private var lastArrowCode = "none"
     private var lastArrowCodeValue = 0
-    private var lastBitmapPush = "none"
     private var lastArrowStringPush = "none"
     private var lastArrowSvgLength = 0
     private var lastArrowSvgHead = ""
@@ -581,21 +580,17 @@ internal object EcarxHudBridge {
         maneuver.road.takeIf { it.isNotEmpty() }
             ?.let { EcarxDimApi.updateNextGuidancePointName(naviRef, it) }
         if (EcarxOutputSettings.turnArrowExperimental(app)) {
-            // The int overload has no recovered code table, so draw the arrow locally and push it
-            // through the (Bitmap) overload instead — the one code-table-free channel the device
-            // exposes (see 亿咖通DIM-真机契约转储.md).
-            //
-            // 路口箭头优先，缺省用导航箭头：only a drawn junction arrow is pushed. When the maneuver
-            // has no mapped shape, nothing is written here, so the cluster keeps the navigation
-            // arrow it already derives from updateNavigationInfo instead of a counter value that
-            // has no meaning on this firmware.
-            // Experiment 0.3.11: the int overload receives AutoNavi turn codes instead of Apple's
-            // maneuver type. Chinese head units share the AutoNavi icon table (straight 16, left
-            // 19, right 20 ...), which also explains why every value 0.3.10 sent was accepted but
-            // never drawn: the numbers were in the wrong namespace.
+            // The arrow goes out through the string overload only. The int table is a demo ramp on
+            // this firmware and the bitmap channel was never proven either, so neither is tried as
+            // a fallback: an unmapped maneuver pushes nothing and the cluster keeps the arrow that
+            // updateNavigationInfo already carried.
             lastArrowType = maneuver.type.toString()
             lastArrowDirection = maneuver.drivingSide.toString()
             val code = amapTurnCode(maneuver.type, maneuver.drivingSide)
+            if (code != null) {
+                lastArrowCodeValue = code
+                lastArrowCode = code.toString()
+            }
             val svg = turnArrowSvg(maneuver.type, maneuver.drivingSide)
             lastArrowSvgHead = svg.take(120)
             if (svg.isEmpty()) {
@@ -607,32 +602,7 @@ internal object EcarxHudBridge {
                 lastArrowChannel = "string-svg"
                 val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, svg)
                 lastArrowStringPush = if (arrow.ok) "ok" else "failed:" + arrow.reason
-                if (arrow.ok) {
-                    lastArrowPush = "svg-ok"
-                    if (code != null) {
-                        lastArrowCodeValue = code
-                        lastArrowCode = code.toString()
-                    }
-                } else {
-                    lastArrowPush = "svg-failed:" + arrow.reason
-                    if (code != null) {
-                        lastArrowCodeValue = code
-                        lastArrowCode = code.toString()
-                        lastArrowChannel = "string-svg+int"
-                        val fallback = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
-                        lastArrowPush =
-                            if (fallback.ok) "svg-failed+int-ok" else "svg-failed+int-failed:" + fallback.reason
-                    } else {
-                        val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
-                        if (bitmap != null) {
-                            val bmp = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
-                            lastBitmapPush = if (bmp.ok) "ok" else "failed:" + bmp.reason
-                            lastArrowChannel = "string-svg+bitmap"
-                            lastArrowPush =
-                                if (bmp.ok) "svg-failed+bitmap-ok" else "svg-failed+bitmap-failed:" + bmp.reason
-                        }
-                    }
-                }
+                lastArrowPush = if (arrow.ok) "svg-ok" else "svg-failed:" + arrow.reason
             }
             val stamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
                 .format(java.util.Date())
@@ -1047,7 +1017,6 @@ internal object EcarxHudBridge {
             append(" lastArrowType=").append(lastArrowType)
             append(" lastArrowDirection=").append(lastArrowDirection)
             append(" lastArrowCode=").append(lastArrowCode)
-            append(" lastBitmapPush=").append(lastBitmapPush)
             append(" lastArrowStringPush=").append(lastArrowStringPush)
             append(" lastArrowSvgLength=").append(lastArrowSvgLength)
             append(" lastArrowSvgHead=").append(lastArrowSvgHead)

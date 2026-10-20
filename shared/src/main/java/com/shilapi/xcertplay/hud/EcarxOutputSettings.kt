@@ -73,12 +73,12 @@ object EcarxOutputSettings {
     }
 
     /**
-     * Whether the CarPlay maneuver is also pushed as a raw turn arrow. Off by default: the ECARX
-     * turn-id table could not be recovered from either shipped app, so the mapping is a best
-     * effort and must be calibrated on the car before it is trusted.
+     * Whether the CarPlay maneuver is also pushed as a drawn SVG arrow. On by default: it is the
+     * only arrow channel this port uses now, so without it the cluster falls back to whatever
+     * arrow it derives from [EcarxHudBridge]'s navigation payload.
      */
     fun turnArrowExperimental(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_ARROW_EXPERIMENTAL, false)
+        prefs(context).getBoolean(KEY_ARROW_EXPERIMENTAL, true)
 
     fun setTurnArrowExperimental(context: Context, enabled: Boolean) {
         check(prefs(context).edit().putBoolean(KEY_ARROW_EXPERIMENTAL, enabled).commit()) {

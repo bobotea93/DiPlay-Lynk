@@ -1024,8 +1024,8 @@
     <string name="settings_ecarx_navi_mode">クラスターのナビゲーションモード</string>
     <string name="settings_ecarx_navi_mode_off">車本来のソースをそのまま使う</string>
     <string name="settings_ecarx_navi_mode_on">CarPlay のナビゲーションを優先</string>
-    <string name="settings_ecarx_turn_arrow">生の転回矢印（実験的機能）</string>
-    <string name="settings_ecarx_turn_arrow_description">各操作を数値の矢印としても送ります。ECARX の転回 ID 表は未検証のため、信頼する前に車上で矢印を確認してください。</string>
+    <string name="settings_ecarx_turn_arrow">矢印アイコンの送信（実験的機能）</string>
+    <string name="settings_ecarx_turn_arrow_description">各操作の転回矢印を SVG アイコンとしてクラスターへ送ります。既定でオン。オフにするとクラスター自身の矢印のままになります。</string>
     <string name="settings_ecarx_unavailable">車が要求を拒否しました</string>
     <string name="settings_ecarx_arrow_test">転回 ID のテスト（実験的機能）</string>
     <string name="settings_ecarx_arrow_test_description">各ボタンは対応する転回矢印の呼び出しだけを 2 秒ごとに 1 つ送ります。もう一度押すと最初からやり直します。転回 ID は 0〜60、ビットマップと SVG のテストは直進・転回・Uターン・ラウンドアバウト・到着などの基本図形を順に送ります。</string>

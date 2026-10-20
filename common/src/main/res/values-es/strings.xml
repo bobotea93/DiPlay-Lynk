@@ -922,8 +922,8 @@
     <string name="settings_ecarx_navi_mode">Modo de navegación del cuadro</string>
     <string name="settings_ecarx_navi_mode_off">Dejar la fuente propia del coche</string>
     <string name="settings_ecarx_navi_mode_on">Preferir la navegación de CarPlay</string>
-    <string name="settings_ecarx_turn_arrow">Flecha de giro sin procesar (experimental)</string>
-    <string name="settings_ecarx_turn_arrow_description">También envía cada maniobra como una flecha numérica. La tabla de ID de giro de ECARX no está verificada, así que comprueba la flecha en el coche antes de fiarte de ella.</string>
+    <string name="settings_ecarx_turn_arrow">Enviar iconos de flecha (experimental)</string>
+    <string name="settings_ecarx_turn_arrow_description">Envía la flecha de cada maniobra como icono SVG. Activado por defecto; desactívalo para que el cuadro use su propia flecha.</string>
     <string name="settings_ecarx_unavailable">El coche rechazó la solicitud</string>
     <string name="settings_ecarx_arrow_test">Probar ID de giro (experimental)</string>
     <string name="settings_ecarx_arrow_test_description">Cada botón envía solo la llamada de flecha seleccionada, un paso cada 2 segundos; vuelve a pulsar para reiniciar. Los ID de giro van del 0 al 60, y las pruebas de mapa de bits y SVG recorren las maniobras básicas: recto, giros, cambio de sentido, rotonda y llegada.</string>

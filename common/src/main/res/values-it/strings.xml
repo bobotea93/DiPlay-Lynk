@@ -1012,8 +1012,8 @@
     <string name="settings_ecarx_navi_mode">Modalità di navigazione del quadro</string>
     <string name="settings_ecarx_navi_mode_off">Lascia la sorgente dell’auto</string>
     <string name="settings_ecarx_navi_mode_on">Preferisci la navigazione di CarPlay</string>
-    <string name="settings_ecarx_turn_arrow">Freccia di svolta grezza (sperimentale)</string>
-    <string name="settings_ecarx_turn_arrow_description">Invia anche ogni manovra come freccia numerica. La tabella degli ID di svolta ECARX non è verificata, quindi controlla la freccia sull’auto prima di fidarti.</string>
+    <string name="settings_ecarx_turn_arrow">Invia icone delle frecce (sperimentale)</string>
+    <string name="settings_ecarx_turn_arrow_description">Invia la freccia di ogni manovra come icona SVG. Attivo per impostazione predefinita; disattivalo per lasciare al quadro la sua freccia.</string>
     <string name="settings_ecarx_unavailable">L’auto ha rifiutato la richiesta</string>
     <string name="settings_ecarx_arrow_test">Prova ID di svolta (sperimentale)</string>
     <string name="settings_ecarx_arrow_test_description">Ogni pulsante invia solo la chiamata della freccia selezionata, un passo ogni 2 secondi; premi di nuovo per ricominciare. Gli ID di svolta vanno da 0 a 60, mentre le prove bitmap e SVG percorrono le manovre di base: dritto, svolte, inversione a U, rotatoria e arrivo.</string>

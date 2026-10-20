@@ -934,8 +934,8 @@
     <string name="settings_ecarx_navi_mode">Режим навігації на панелі</string>
     <string name="settings_ecarx_navi_mode_off">Залишити власне джерело автомобіля</string>
     <string name="settings_ecarx_navi_mode_on">Надавати перевагу навігації CarPlay</string>
-    <string name="settings_ecarx_turn_arrow">Сира стрілка повороту (експериментально)</string>
-    <string name="settings_ecarx_turn_arrow_description">Також надсилає кожен маневр числовою стрілкою. Таблиця ідентифікаторів повороту ECARX не перевірена, тому звіряйте стрілку на автомобілі.</string>
+    <string name="settings_ecarx_turn_arrow">Надсилання значків стрілок (експериментально)</string>
+    <string name="settings_ecarx_turn_arrow_description">Надсилає стрілку кожного маневру як SVG-значок. Увімкнено за замовчуванням; вимкніть, щоб панель показувала свою стрілку.</string>
     <string name="settings_ecarx_unavailable">Автомобіль відхилив запит</string>
     <string name="settings_ecarx_arrow_test">Перевірка ID повороту (експериментально)</string>
     <string name="settings_ecarx_arrow_test_description">Кожна кнопка надсилає лише відповідний виклик стрілки повороту, по одному кроку кожні 2 секунди; повторне натискання починає спочатку. ID повороту йдуть від 0 до 60, а тести растру й SVG перебирають базові маневри: прямо, поворот, розворот, круговий рух, прибуття.</string>
