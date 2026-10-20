@@ -526,17 +526,6 @@ class CarPlayHostActivity : ComponentActivity() {
     private var temporarySystemBarsEnabled = false
     private var temporarySystemBarsVisible = false
 
-    /**
-     * Returning from the background on this head unit does not deliver a fresh window focus, so the
-     * one-shot hide in onResume runs before the window is allowed to hide bars and is dropped; a
-     * launch from the icon works because it creates a window that is focused from the start.
-     *
-     * Rather than polling with timers, react to the window state itself: whenever the insets report
-     * a bar we asked to hide, hide it again. That fires exactly when the system puts the bar back,
-     * whenever that happens, and converges after one pass because a hidden bar stops being visible.
-     */
-    private var rehidingSystemBars = false
-    private var rehideLogged = false
     private val hideTemporarySystemBars = Runnable {
         temporarySystemBarsVisible = false
         applyFullscreenMode()
@@ -843,7 +832,6 @@ class CarPlayHostActivity : ComponentActivity() {
         locationPermissionAvailable = hasFineLocationPermission()
         setContentView(buildContentView())
         applyFullscreenMode()
-        watchSystemBars()
         onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
@@ -1773,7 +1761,6 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onPause() {
         cancelTemporarySystemBars()
-        rehideLogged = false
         hostAppearanceResumed = false
         updateCallPopupGuard()
         AppAppearanceRuntime.clearHost(this)
@@ -5695,28 +5682,6 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun navigationBarShown(): Boolean? =
         ViewCompat.getRootWindowInsets(window.decorView)?.isVisible(WindowInsetsCompat.Type.navigationBars())
 
-    private fun watchSystemBars() {
-        ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
-            if (!isMultiWindowActive()) {
-                val topWanted = hideTopBar && insets.isVisible(WindowInsetsCompat.Type.statusBars())
-                val bottomWanted = hideBottomBar && insets.isVisible(WindowInsetsCompat.Type.navigationBars())
-                if ((topWanted || bottomWanted) && !rehidingSystemBars) {
-                    rehidingSystemBars = true
-                    view.post {
-                        applyFullscreenMode()
-                        rehidingSystemBars = false
-                        if (!rehideLogged) {
-                            rehideLogged = true
-                            appendLog("System bars came back; hid them again")
-                        }
-                    }
-                }
-            }
-            insets
-        }
-        ViewCompat.requestApplyInsets(window.decorView)
-    }
-
     private fun applyDisplaySize(size: DisplaySize) {
         val display = sessionDisplay
         if (display != null && applyViewArea(size, display)) return
@@ -6699,18 +6664,6 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        // ECARX 固件不认 WindowInsetsController 的 hide()：日志里 "System bars came back" 反复出现，
-        // 说明它把栏又画回来了。这套固件认原生 systemUiVisibility 标志位（与 Harman 兼容层同一套），
-        // 所以只在 ECARX 车机上补一份，IMMERSIVE_STICKY 让它自己缩回去。
-        if (com.shilapi.xcertplay.hud.EcarxCapabilities.available(this)) {
-            val fullscreenMask = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_FULLSCREEN
-            val navigationMask = View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            var legacy = window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            legacy = if (hideTop && !peek) legacy or fullscreenMask else legacy and fullscreenMask.inv()
-            legacy = if (hideBottom && !peek) legacy or navigationMask else legacy and navigationMask.inv()
-            window.decorView.systemUiVisibility = legacy
-        }
     }
 
     /** Temporary reveal without persisting bar visibility or changing AirPlay's negotiated size. */

@@ -1,3 +1,9 @@
+# DiPlay 0.3.16 — 2026-10-20
+
+- Revert the Lynk-only system-bar workaround to the upstream DiPlay approach: remove the ECARX legacy systemUiVisibility flags, remove the inset watcher that re-hid bars, and restore resizeableActivity=true on CarPlayHostActivity.
+- The status/navigation bars are hidden only through WindowInsetsControllerCompat in onResume and onWindowFocusChanged, as upstream does.
+- No arrow or projection behavior change from 0.3.15.
+
 # DiPlay 0.3.15 — 2026-10-20
 
 - Turn the cluster projection off when a CarPlay session ends or the controller tears down; the saved "instrument projection" setting is kept and re-armed on the next session.
