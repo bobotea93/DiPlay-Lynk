@@ -2,6 +2,15 @@
 
 本文整理 iAP2 Route Guidance Information（RGI）消息族 0x5200–0x5204 的字段定义与取值含义，供 DiPlay 的仪表/HUD 输出对照使用。字段表来自 luka-dev/mib2q-carplay-rgi 的实测定义（hook/routeguidance/rgd_tlv.h），并结合本项目 RouteGuidanceState.kt 的实际解析范围。
 
+## 0. 术语
+
+- **机动（maneuver）**：路线指引中的一条独立导航动作/事件，对应一条 0x5202 记录，用 index 标识。例子：左转、右转、直行、沿路继续、进入环岛、驶出环岛、靠左、靠右、变换高速、到达目的地。它不是车辆的驾驶动作，也不是一段道路，而是“下一步该做什么”的一条指令。
+- **机动列表（maneuver list）**：0x5201 的 0x000D，按执行顺序排列的机动 index 列表；第一个是当前要执行的机动。
+- **当前机动（current maneuver）**：机动列表的第一个 index，配合 0x5202 的 index 取类型、转向侧和后续道路。
+- **路线状态（route guidance state）**：0x5201 的 0x0001，表示有没有路线、是否在导航、是否到达等。
+- **车道指引（lane guidance）**：0x5204 的逐车道信息，描述每条车道是否可用或推荐。
+- **到下一机动的距离（distance to maneuver）**：0x5201 的 0x000A，通常显示在转向箭头旁。
+
 ## 1. 消息族
 
 | ID | 名称 | 方向 | 作用 |
