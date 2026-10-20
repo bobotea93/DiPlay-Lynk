@@ -412,7 +412,7 @@ internal object EcarxHudBridge {
         maneuver.remainingMeters?.let { EcarxDimApi.updateDistanceToDestination(naviRef, it) }
         maneuver.arrivalEpochSeconds?.let { EcarxDimApi.updateEta(naviRef, it) }
         maneuver.road.takeIf { it.isNotEmpty() }
-            ?.let { EcarxDimApi.updateNextGuidancePointName(naviRef, it) }
+            ?.let { EcarxDimApi.updateNextGuidancePointName(naviRef, taggedRoad(it)) }
         if (EcarxOutputSettings.turnArrowExperimental(app)) {
             // The int overload has no recovered code table, so draw the arrow locally and push it
             // through the (Bitmap) overload instead — the one code-table-free channel the device
@@ -527,7 +527,7 @@ internal object EcarxHudBridge {
             status = NAVI_STATUS_ACTIVE,
             muteState = 0,
             dayNightMode = dayNightMode(),
-            nextGuidancePointName = maneuver.road,
+            nextGuidancePointName = taggedRoad(maneuver.road),
             navigationTurnSvg = turnArrowSvg(maneuver.type, maneuver.drivingSide),
         )
     }
@@ -583,6 +583,9 @@ internal object EcarxHudBridge {
                 .ifEmpty { "none" }
         }.getOrDefault("probe-failed")
     }
+
+    /** Diagnostic marker: prefix every non-empty road name so the cluster display can be traced. */
+    private fun taggedRoad(road: String): String = if (road.isEmpty()) road else "1$road"
 
     /** Human label for an Apple maneuver type, for the diagnostic timelines only. */
     private fun maneuverLabel(type: Int): String = when (type) {
