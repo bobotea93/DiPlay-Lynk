@@ -1,3 +1,9 @@
+# DiPlay 0.3.18 — 2026-10-20
+
+- Diagnostic: all arrows now go through the third updateTurnByTurnArrow(String) overload with a minimal per-maneuver SVG; int and bitmap remain as fallbacks when the String call fails.
+- Record lastArrowStringPush and lastArrowSvgLength. The arrow timeline keeps the old type/code/distance columns.
+- No change to arrow codes, projection or system-bar behavior.
+
 # DiPlay 0.3.17 — 2026-10-20
 
 - Diagnostic: on a right turn (AutoNavi 20), also push a locally drawn right-arrow bitmap after the int call, because the cluster accepts 20 but draws nothing.

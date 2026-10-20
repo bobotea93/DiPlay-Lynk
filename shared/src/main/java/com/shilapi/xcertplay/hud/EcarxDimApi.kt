@@ -150,6 +150,11 @@ internal object EcarxDimApi {
         call(navi, "updateTurnByTurnArrow", arrayOf(android.graphics.Bitmap::class.java), arrayOf<Any?>(arrow),
             "updateTurnByTurnArrow(Bitmap)")
 
+    /** 0.3.18 experiment: the third overload, a String (SVG by assumption). */
+    fun updateTurnByTurnArrow(navi: Any, svg: String): EcarxResult =
+        call(navi, "updateTurnByTurnArrow", arrayOf(String::class.java), arrayOf<Any?>(svg),
+            "updateTurnByTurnArrow(String)")
+
     fun updateDistanceToNextGuidancePoint(navi: Any, meters: Long): EcarxResult =
         callInt(navi, "updateDistanceToNextGuidancePoint", meters.toInt())
 

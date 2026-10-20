@@ -113,6 +113,8 @@ internal object EcarxHudBridge {
     private var lastArrowCode = "none"
     private var lastArrowCodeValue = 0
     private var lastBitmapPush = "none"
+    private var lastArrowStringPush = "none"
+    private var lastArrowSvgLength = 0
     /** Parsed 0x5202 maneuvers with a human type label, for the diagnostic report. */
     private val maneuverTimeline = ArrayDeque<String>()
     /** Last handful of arrow pushes, so a straight segment can be told apart from a cleared route. */
@@ -426,41 +428,40 @@ internal object EcarxHudBridge {
             lastArrowType = maneuver.type.toString()
             lastArrowDirection = maneuver.drivingSide.toString()
             val code = amapTurnCode(maneuver.type, maneuver.drivingSide)
-            if (code == null) {
-                // Unknown maneuver: keep the previous arrow instead of overwriting it with a guess.
-                lastArrowPush = "int-skipped-unknown"
-                lastArrowChannel = "int-amap-skip"
+            val svg = turnArrowSvg(maneuver.type, maneuver.drivingSide)
+            if (svg.isEmpty()) {
+                lastArrowStringPush = "svg-empty"
+                lastArrowPush = "svg-empty"
+                lastArrowChannel = "string-svg-skip"
             } else {
-                lastArrowCodeValue = code
-                lastArrowCode = code.toString()
-                lastArrowChannel = "int-amap"
-                val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
+                lastArrowSvgLength = svg.length
+                lastArrowChannel = "string-svg"
+                val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, svg)
+                lastArrowStringPush = if (arrow.ok) "ok" else "failed:" + arrow.reason
                 if (arrow.ok) {
-                    lastArrowPush = "int-ok"
-                    if (code == 20) {
-                        // Diagnostic 0.3.17: the cluster accepts right-turn 20 but draws nothing.
-                        // Push a locally drawn right arrow through the code-table-free Bitmap
-                        // channel as well, and record whether the device honours it.
+                    lastArrowPush = "svg-ok"
+                    if (code != null) {
+                        lastArrowCodeValue = code
+                        lastArrowCode = code.toString()
+                    }
+                } else {
+                    lastArrowPush = "svg-failed:" + arrow.reason
+                    if (code != null) {
+                        lastArrowCodeValue = code
+                        lastArrowCode = code.toString()
+                        lastArrowChannel = "string-svg+int"
+                        val fallback = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
+                        lastArrowPush =
+                            if (fallback.ok) "svg-failed+int-ok" else "svg-failed+int-failed:" + fallback.reason
+                    } else {
                         val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
                         if (bitmap != null) {
                             val bmp = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
                             lastBitmapPush = if (bmp.ok) "ok" else "failed:" + bmp.reason
-                            lastArrowChannel = "int-amap+bitmap-right"
+                            lastArrowChannel = "string-svg+bitmap"
                             lastArrowPush =
-                                if (bmp.ok) "int-ok+bitmap-ok" else "int-ok+bitmap-failed:" + bmp.reason
-                        } else {
-                            lastBitmapPush = "no-bitmap"
+                                if (bmp.ok) "svg-failed+bitmap-ok" else "svg-failed+bitmap-failed:" + bmp.reason
                         }
-                    }
-                } else {
-                    // The int overload is missing or rejected; the locally drawn bitmap is the one
-                    // code-table-free channel and stays as the fallback.
-                    lastArrowPush = "int-failed:" + arrow.reason
-                    val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
-                    if (bitmap != null) {
-                        val fallback = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
-                        lastArrowChannel = "bitmap"
-                        lastArrowPush = if (fallback.ok) "bitmap-ok" else "bitmap-failed:" + fallback.reason
                     }
                 }
             }
@@ -780,6 +781,8 @@ internal object EcarxHudBridge {
             append(" lastArrowDirection=").append(lastArrowDirection)
             append(" lastArrowCode=").append(lastArrowCode)
             append(" lastBitmapPush=").append(lastBitmapPush)
+            append(" lastArrowStringPush=").append(lastArrowStringPush)
+            append(" lastArrowSvgLength=").append(lastArrowSvgLength)
             append(" arrowTimeline=").append(arrowTimeline.joinToString("|"))
             append(" maneuverTimeline=").append(maneuverTimeline.joinToString("|"))
             append(" guidanceTurnId=").append(lastGuidanceTurnId)
