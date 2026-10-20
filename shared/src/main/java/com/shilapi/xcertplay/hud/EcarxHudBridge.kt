@@ -471,7 +471,7 @@ internal object EcarxHudBridge {
                 "$stamp ${maneuverLabel(maneuver.type)} t=${maneuver.type} c=$codeText " +
                     "d=${maneuver.distanceMeters} $lastArrowPush",
             )
-            while (arrowTimeline.size > 60) arrowTimeline.removeFirst()
+
         }
 
         lastPushed = guidance
@@ -589,7 +589,7 @@ internal object EcarxHudBridge {
         maneuverTimeline.addLast(
             "$stamp idx=$index ${maneuverLabel(type)} t=$type s=$side road=$road",
         )
-        while (maneuverTimeline.size > 60) maneuverTimeline.removeFirst()
+
     }
 
     private fun amapTurnCode(type: Int, drivingSide: Int): Int? = when (type) {
