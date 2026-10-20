@@ -1,3 +1,9 @@
+# DiPlay 0.3.17 — 2026-10-20
+
+- Diagnostic: on a right turn (AutoNavi 20), also push a locally drawn right-arrow bitmap after the int call, because the cluster accepts 20 but draws nothing.
+- Record lastBitmapPush; lastArrowChannel becomes int-amap+bitmap-right when the bitmap is sent.
+- No change to left/straight arrows, projection or system-bar behavior.
+
 # DiPlay 0.3.16 — 2026-10-20
 
 - Revert the Lynk-only system-bar workaround to the upstream DiPlay approach: remove the ECARX legacy systemUiVisibility flags, remove the inset watcher that re-hid bars, and restore resizeableActivity=true on CarPlayHostActivity.

@@ -109,6 +109,7 @@ internal object EcarxHudBridge {
     private var lastArrowDirection = "none"
     private var lastArrowCode = "none"
     private var lastArrowCodeValue = 0
+    private var lastBitmapPush = "none"
     /** Last handful of arrow pushes, so a straight segment can be told apart from a cleared route. */
     private val arrowTimeline = ArrayDeque<String>()
     private var lastGuidanceTurnId = "none"
@@ -431,6 +432,21 @@ internal object EcarxHudBridge {
                 val arrow = EcarxDimApi.updateTurnByTurnArrow(naviRef, code)
                 if (arrow.ok) {
                     lastArrowPush = "int-ok"
+                    if (code == 20) {
+                        // Diagnostic 0.3.17: the cluster accepts right-turn 20 but draws nothing.
+                        // Push a locally drawn right arrow through the code-table-free Bitmap
+                        // channel as well, and record whether the device honours it.
+                        val bitmap = turnArrowBitmap(maneuver.type, maneuver.drivingSide)
+                        if (bitmap != null) {
+                            val bmp = EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
+                            lastBitmapPush = if (bmp.ok) "ok" else "failed:" + bmp.reason
+                            lastArrowChannel = "int-amap+bitmap-right"
+                            lastArrowPush =
+                                if (bmp.ok) "int-ok+bitmap-ok" else "int-ok+bitmap-failed:" + bmp.reason
+                        } else {
+                            lastBitmapPush = "no-bitmap"
+                        }
+                    }
                 } else {
                     // The int overload is missing or rejected; the locally drawn bitmap is the one
                     // code-table-free channel and stays as the fallback.
@@ -731,6 +747,7 @@ internal object EcarxHudBridge {
             append(" lastArrowType=").append(lastArrowType)
             append(" lastArrowDirection=").append(lastArrowDirection)
             append(" lastArrowCode=").append(lastArrowCode)
+            append(" lastBitmapPush=").append(lastBitmapPush)
             append(" arrowTimeline=").append(arrowTimeline.joinToString("|"))
             append(" guidanceTurnId=").append(lastGuidanceTurnId)
             append(" guidanceDrivingDirection=").append(lastGuidanceDrivingDirection)
