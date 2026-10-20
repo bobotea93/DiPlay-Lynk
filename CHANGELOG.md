@@ -1,3 +1,9 @@
+# DiPlay 0.3.20 — 2026-10-20
+
+- Add an in-app ECARX arrow-channel calibration card: sweep turn IDs 0-60 through updateTurnByTurnArrow(int), and sweep the basic maneuvers through the Bitmap and SVG overloads, one step every 2 seconds.
+- Normal guidance pushes pause while a test runs and resume when it ends; saved settings and the next session are untouched.
+- Add the Settings readout that names the step currently on the cluster; strings in all bundled languages.
+
 # DiPlay 0.3.19 — 2026-10-20
 
 - Diagnostic marker: every non-empty road name sent to ECARX is prefixed with "1", so a road shown on the cluster can be traced back to DiPlay's data.
