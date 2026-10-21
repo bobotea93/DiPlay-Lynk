@@ -1,3 +1,9 @@
+# DiPlay 0.3.22 — 2026-10-21
+
+- Add the ECARX ILaneInfo probe with diagnostic output and a settings entry.
+- Refactor and clean up the turn-arrow push logic.
+- Send turn arrows as SVG icons by default.
+
 # DiPlay 0.3.21 — 2026-10-20
 
 - SVG arrows redrawn on a 100x100 canvas with thick shafts and solid triangular heads, covering the full maneuver table.
