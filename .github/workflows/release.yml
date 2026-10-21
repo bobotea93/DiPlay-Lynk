@@ -1,19 +1,17 @@
-name: Build and publish release APK
+name: Build source-only APK (no MFi)
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: source-only-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -42,7 +40,7 @@ jobs:
           CODE=$(awk '/versionCode = / {print $3; exit}' mobile/build.gradle.kts)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          echo "Building $VERSION ($CODE)"
+          echo "Building $VERSION ($CODE), source-only"
 
       - name: Prepare AOSP platform test key
         run: |
@@ -62,48 +60,28 @@ jobs:
       - name: Build signed release APK
         run: ./gradlew :mobile:assembleRelease -x lintVitalAnalyzeRelease -x lintVitalRelease -x lintVitalReportRelease --stacktrace
 
-      - name: Verify and collect artifacts
+      - name: Verify, reject MFi assets, collect artifact
         id: artifact
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           APK_SRC=mobile/build/outputs/apk/release/mobile-release.apk
           OUT=out
           mkdir -p "$OUT"
-          APK="$OUT/DiPlay-lynk-$VERSION.apk"
+          APK="$OUT/DiPlay-lynk-$VERSION-source-only.apk"
           /bin/cp -f "$APK_SRC" "$APK"
           BT="$ANDROID_HOME/build-tools/36.0.0"
           "$BT/aapt2" dump badging "$APK" | head -3
           "$BT/apksigner" verify --print-certs "$APK" | head -3
+          if unzip -l "$APK" | grep -q 'assets/offline-mfi'; then
+            echo "::error::MFi identity found in a public CI artifact; refusing to upload"
+            exit 1
+          fi
           SHA=$(sha256sum "$APK" | cut -d' ' -f1)
-          echo "$SHA  DiPlay-lynk-$VERSION.apk" > "$OUT/SHA256SUMS.txt"
+          echo "$SHA  DiPlay-lynk-$VERSION-source-only.apk" > "$OUT/SHA256SUMS.txt"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           cat "$OUT/SHA256SUMS.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DiPlay-lynk-${{ steps.version.outputs.version }}
+          name: DiPlay-lynk-${{ steps.version.outputs.version }}-source-only
           path: out/*
-
-      - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          CODE="${{ steps.version.outputs.code }}"
-          SHA="${{ steps.artifact.outputs.sha }}"
-          cat > release-notes.md <<EOF
-          领克 05 / DCY11 移植版 ${VERSION}。
-
-          - 包名：com.kakamatong.diplay.lynk
-          - versionCode ${CODE} / versionName ${VERSION}
-          - 签名：AOSP platform test key
-          - SHA-256：${SHA}
-
-          APK 与 SHA256SUMS.txt 由 GitHub Actions 从 tag ${GITHUB_REF_NAME} 自动构建。
-          EOF
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "out/DiPlay-lynk-$VERSION.apk" out/SHA256SUMS.txt --clobber
-          else
-            gh release create "$GITHUB_REF_NAME" --title "DiPlay $VERSION (Lynk)" --notes-file release-notes.md "out/DiPlay-lynk-$VERSION.apk#DiPlay-lynk-$VERSION.apk" out/SHA256SUMS.txt
-          fi
