@@ -33,7 +33,8 @@ import java.lang.reflect.Proxy
  * DimInteraction.getShowPresentationOption()                            -> int   (the only read-back we found)
  * DimInteraction.setPresentationToDimSwitch(int,String,String,boolean)  <- 仪表投屏开关, returns void
  * INaviInteraction.updateNavigationInfo(INavigationInfo)
- * INaviInteraction.updateTurnByTurnArrow(int) | (String) | (Bitmap)   -- 三个重载
+ * INaviInteraction.updateTurnByTurnArrow(String) | (Bitmap)          -- 本移植使用的两个图标重载
+ *   (the device also declares updateTurnByTurnArrow(int); it is a demo ramp and is not used)
  * INaviInteraction.updateDistanceToNextGuidancePoint(int)
  * INaviInteraction.updateDistanceToDestination(int)
  * INaviInteraction.updateETA(int)
@@ -137,20 +138,19 @@ internal object EcarxDimApi {
         return call(navi, "updateNavigationInfo", arrayOf(itf), arrayOf<Any?>(info), "updateNavigationInfo")
     }
 
-    fun updateTurnByTurnArrow(navi: Any, arrow: Int): EcarxResult =
-        callInt(navi, "updateTurnByTurnArrow", arrow)
-
     /**
      * Pushes a drawn arrow bitmap through the `(Bitmap)` overload. This is the code-table-free path:
      * `turnId` has no recovered mapping on this head unit (the shipped apps feed it a demo counter),
      * but the DIM interface also accepts a `Bitmap`, so a locally drawn arrow bypasses the unknown
      * int code table entirely (see 适配文件/亿咖通DIM-真机契约转储.md).
+     *
+     * No production path uses this overload; it is kept for the Settings arrow test.
      */
     fun updateTurnByTurnArrow(navi: Any, arrow: android.graphics.Bitmap): EcarxResult =
         call(navi, "updateTurnByTurnArrow", arrayOf(android.graphics.Bitmap::class.java), arrayOf<Any?>(arrow),
             "updateTurnByTurnArrow(Bitmap)")
 
-    /** 0.3.18 experiment: the third overload, a String (SVG by assumption). */
+    /** The arrow channel the live guidance push uses: a drawn SVG icon as a String. */
     fun updateTurnByTurnArrow(navi: Any, svg: String): EcarxResult =
         call(navi, "updateTurnByTurnArrow", arrayOf(String::class.java), arrayOf<Any?>(svg),
             "updateTurnByTurnArrow(String)")

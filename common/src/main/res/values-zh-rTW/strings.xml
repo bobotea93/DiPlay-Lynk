@@ -985,10 +985,8 @@
     <string name="settings_ecarx_turn_arrow">傳送轉向箭頭（實驗性）</string>
     <string name="settings_ecarx_turn_arrow_description">把每個機動動作的轉向箭頭以 SVG 圖示傳送到儀表。預設開啟；關閉後儀表保留自己的箭頭。</string>
     <string name="settings_ecarx_unavailable">車機拒絕了這次請求</string>
-    <string name="settings_ecarx_arrow_test">測試轉向 ID（實驗性）</string>
-    <string name="settings_ecarx_arrow_test_description">三個按鈕各自只呼叫對應的轉向箭頭介面，每 2 秒推進一步；再次按下會從頭開始。轉向 ID 從 0 到 60，點陣圖和 SVG 測試依序送直行、轉向、迴轉、圓環、抵達等基本圖形。</string>
+    <string name="settings_ecarx_arrow_test_description">兩個按鈕各自只呼叫對應的轉向箭頭介面，每 2 秒推進一步；再次按下會從頭開始。點陣圖和 SVG 測試依序送直行、轉向、迴轉、圓環、抵達等基本圖形。</string>
     <string name="settings_ecarx_arrow_test_idle">未在測試</string>
-    <string name="settings_ecarx_arrow_test_current">目前 ID %1$d</string>
     <string name="settings_ecarx_bitmap_test">測試箭頭點陣圖（實驗性）</string>
     <string name="settings_ecarx_svg_test">測試箭頭 SVG（實驗性）</string>
     <string name="settings_ecarx_arrow_bitmap_step">點陣圖 %1$d/%2$d · %3$s</string>

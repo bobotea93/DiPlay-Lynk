@@ -15,23 +15,23 @@ import java.util.concurrent.TimeUnit
 /**
  * Publishes CarPlay guidance to an ECARX (亿咖通) instrument cluster through the XUI DIM API.
  *
- * The call sequence is the one the shipped ECARX toolkit uses, recovered from
+ * The field order is the one the shipped ECARX toolkit uses, recovered from
  * `tools-apktool/smali/s1/n.smali` — a Runnable the toolkit posts every 1000 ms:
  * ```
  * navi.updateNavigationInfo(info); navi.updateTurnByTurnArrow(v++);
  * ```
- * so the field order and the 1 s cadence here are not invented.
+ * This port pushes on route updates instead of replaying that loop; the 1 s ticker only maintains
+ * the projection watch, retries the DIM handles and retires stale guidance.
  *
  * What is proven vs. what needs calibration on the car:
  *  * **Proven.** `updateNavigationInfo` with the 15-getter `INavigationInfo` payload; the getter
  *    set is exhaustive (`s1/r.smali` implements exactly these); `updateDistanceToDestination`,
  *    `updateDistanceToNextGuidancePoint`, `updateETA`, `updateNextGuidancePointName`,
  *    `updateLaneInfo`, `notifyTurnByTurnStarted/Stopped` take the arguments used below.
- *  * **Needs calibration.** `getNavigationTurnId()` is a bare `int` with no lookup table in either
- *    shipped app — the toolkit fills it from a counter that also feeds `updateTurnByTurnArrow`,
- *    i.e. a demo ramp, not a real code table. The same holds for `getDrivingDirection()`. So the
- *    arrow is only pushed behind [EcarxOutputSettings.turnArrowExperimental], and the two
- *    unverified fields carry documented placeholders instead of a guessed enum.
+ *  * **Needs calibration.** `getNavigationTurnId()` is a bare `int`; the toolkit's counter is a
+ *    demo ramp, so this port feeds it the AutoNavi icon code (or the last one when a maneuver has
+ *    no code). `getDrivingDirection()` has no recovered scale and stays a documented placeholder.
+ *    The drawn SVG is the only arrow channel pushed explicitly.
  *
  * Every ECARX call is reflection-only (see [EcarxDimApi]): a direct reference would turn a
  * missing system class into a `NoClassDefFoundError` on every non-ECARX head unit.
@@ -39,16 +39,10 @@ import java.util.concurrent.TimeUnit
 internal object EcarxHudBridge {
     private const val TAG = "DiPlay-ECARX-HUD"
 
-    /** Re-send even when nothing changed, so the cluster never quietly drops the card. */
-    private const val KEEPALIVE_TICKS = 5
-
     /**
-     * The arrow-channel tests offered in Settings. [TURN_ID_TEST_FIRST]..[TURN_ID_TEST_LAST]
-     * walks the numeric code table; the bitmap and SVG tests walk [EcarxArrowShape], one step
-     * every [ARROW_TEST_STEP_MILLIS].
+     * The arrow-icon tests offered in Settings. The bitmap and SVG tests walk [EcarxArrowShape],
+     * one step every [ARROW_TEST_STEP_MILLIS].
      */
-    private const val TURN_ID_TEST_FIRST = 0
-    private const val TURN_ID_TEST_LAST = 60
     private const val ARROW_TEST_STEP_MILLIS = 2_000L
 
     /**
@@ -103,17 +97,13 @@ internal object EcarxHudBridge {
     private var presentationCountdown = 0
     private var presentationAttempts = 0
 
-    /** Bumped whenever the maneuver changes; the closest honest analogue of the toolkit's counter. */
-    private var turnId = 0
-    private var lastManeuverKey: String? = null
     private var lastPushed: EcarxDimApi.Guidance? = null
-    private var ticksSincePush = 0
     private var guidanceActive = false
 
     // Arrow-channel test state. While one runs the normal push path stays silent, so the cluster
     // shows only the value under test; the route state keeps updating in the background.
     private var testRunning = false
-    private var testKind = EcarxArrowTestKind.TURN_ID
+    private var testKind = EcarxArrowTestKind.SVG
     private var testIndex = 0
     private var testTotal = 0
     private var testLastStep: EcarxArrowTestStep? = null
@@ -153,12 +143,7 @@ internal object EcarxHudBridge {
     private var lastSvgHead = ""
     private var laneMethodNames: String? = null
 
-    /**
-     * A screen appearing or disappearing is the closest thing to "the car was just started" that a
-     * third-party app can observe, so it cancels the backoff instead of making the cluster wait
-     * for the next keepalive. On this head unit the cluster screen is not in `getDisplays()` at all
-     * (probe v4), so this is a hint, never the mechanism — the keepalive is.
-     */
+    /** The `ILaneInfo` method signatures, for the diagnostic report. */
     private fun laneMethods(): String {
         laneMethodNames?.let { return it }
         val names = runCatching {
@@ -173,6 +158,12 @@ internal object EcarxHudBridge {
         return names
     }
 
+    /**
+     * A screen appearing or disappearing is the closest thing to "the car was just started" that a
+     * third-party app can observe, so it cancels the projection backoff instead of making the
+     * cluster wait for the next slow retry. On this head unit the cluster screen is not in
+     * `getDisplays()` at all (probe v4), so this is a hint, never the mechanism.
+     */
     private val displayWatch = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) = nudgeProjection("display $displayId added")
         override fun onDisplayRemoved(displayId: Int) = nudgeProjection("display $displayId removed")
@@ -277,14 +268,14 @@ internal object EcarxHudBridge {
         // resumes with the right maneuver as soon as it ends.
         if (testRunning) return@synchronized
         when (change) {
-            RouteGuidanceChange.GUIDANCE -> pushLocked(force = false)
+            RouteGuidanceChange.GUIDANCE -> pushLocked()
             RouteGuidanceChange.CLEAR -> if (lastPushed != null) endLocked()
             RouteGuidanceChange.NONE -> Unit
         }
     }
 
     fun clear() = synchronized(lock) {
-        route.clear() // Stop the keepalive from restoring guidance after cleanup.
+        route.clear() // Drop retained route state so nothing restores it after cleanup.
         // Send the clear even when this process never pushed: after a restart the cluster may
         // still show the arrow left by the previous process. A running test owns the arrow, so
         // the teardown waits until it ends.
@@ -316,8 +307,7 @@ internal object EcarxHudBridge {
     // ---------------------------------------------------------------- arrow-channel tests (diagnostic)
 
     /**
-     * Runs one arrow channel for calibration: [EcarxArrowTestKind.TURN_ID] pushes
-     * `updateTurnByTurnArrow(int)` for 0..60, [EcarxArrowTestKind.BITMAP] and
+     * Runs one arrow channel for calibration: [EcarxArrowTestKind.BITMAP] and
      * [EcarxArrowTestKind.SVG] push the basic maneuvers from [EcarxArrowShape] through their own
      * overload. One step every [ARROW_TEST_STEP_MILLIS], and nothing else on the DIM interface
      * meanwhile: the normal guidance push is suspended until the test ends, so the cluster shows
@@ -338,10 +328,7 @@ internal object EcarxHudBridge {
         testRunning = true
         testKind = kind
         testIndex = 0
-        testTotal = when (kind) {
-            EcarxArrowTestKind.TURN_ID -> TURN_ID_TEST_LAST - TURN_ID_TEST_FIRST + 1
-            EcarxArrowTestKind.BITMAP, EcarxArrowTestKind.SVG -> EcarxArrowShape.entries.size
-        }
+        testTotal = EcarxArrowShape.entries.size
         testGeneration += 1
         val generation = testGeneration
         testListener = onStep
@@ -380,11 +367,9 @@ internal object EcarxHudBridge {
                 stopTestLocked()
                 return
             }
-            val current = if (testKind == EcarxArrowTestKind.TURN_ID) {
-                EcarxArrowTestStep(testKind, index, testTotal, turnId = TURN_ID_TEST_FIRST + index)
-            } else {
-                EcarxArrowTestStep(testKind, index, testTotal, shape = EcarxArrowShape.entries[index])
-            }
+            val current = EcarxArrowTestStep(
+                testKind, index, testTotal, EcarxArrowShape.entries[index],
+            )
             pushTestStepLocked(naviRef, current)
             testLastStep = current
             step = current
@@ -408,36 +393,32 @@ internal object EcarxHudBridge {
     }
 
     private fun pushTestStepLocked(naviRef: Any, step: EcarxArrowTestStep): EcarxDimApi.EcarxResult {
+        val shape = step.shape
         val result = when (step.kind) {
-            EcarxArrowTestKind.TURN_ID -> EcarxDimApi.updateTurnByTurnArrow(naviRef, step.turnId)
             EcarxArrowTestKind.BITMAP -> {
-                val shape = step.shape
-                val bitmap = shape?.let { turnArrowBitmap(it.appleType, it.drivingSide) }
+                val bitmap = turnArrowBitmap(shape.appleType, shape.drivingSide)
                 if (bitmap == null) {
-                    EcarxDimApi.EcarxResult.failed("no bitmap for ${shape?.name}")
+                    EcarxDimApi.EcarxResult.failed("no bitmap for ${shape.name}")
                 } else {
                     EcarxDimApi.updateTurnByTurnArrow(naviRef, bitmap)
                 }
             }
             EcarxArrowTestKind.SVG -> {
-                val shape = step.shape
-                val svg = shape?.let { turnArrowSvg(it.appleType, it.drivingSide) }.orEmpty()
+                val svg = turnArrowSvg(shape.appleType, shape.drivingSide)
                 if (svg.isEmpty()) {
-                    EcarxDimApi.EcarxResult.failed("no svg for ${shape?.name}")
+                    EcarxDimApi.EcarxResult.failed("no svg for ${shape.name}")
                 } else {
                     EcarxDimApi.updateTurnByTurnArrow(naviRef, svg)
                 }
             }
         }
         lastArrowChannel = when (step.kind) {
-            EcarxArrowTestKind.TURN_ID -> "test-int"
             EcarxArrowTestKind.BITMAP -> "test-bitmap"
             EcarxArrowTestKind.SVG -> "test-svg"
         }
-        lastArrowCode = step.shape?.let { "shape:" + it.name } ?: step.turnId.toString()
-        if (step.kind == EcarxArrowTestKind.TURN_ID) lastArrowCodeValue = step.turnId
+        lastArrowCode = "shape:" + shape.name
         lastArrowPush = if (result.ok) "test-ok" else "test-failed:" + result.reason
-        val label = step.shape?.name ?: step.turnId.toString()
+        val label = shape.name
         if (result.ok) {
             Log.i(TAG, "arrow test ${step.kind} $label")
         } else {
@@ -511,12 +492,17 @@ internal object EcarxHudBridge {
         if (!available) return@synchronized
         // The cluster service is not up when the head unit is only on accessory power, so keep
         // asking for the handles as well as for the projection itself.
-        if (dim == null || navi == null) reclaimLocked()
+        if (dim == null || navi == null) {
+            reclaimLocked()
+            // The first guidance frames can arrive before the cluster service is up. Push once when
+            // the navi handle appears instead of leaving the last maneuver waiting for the next
+            // route frame; this is a one-shot recovery, not a keepalive.
+            if (navi != null) pushLocked()
+        }
         watchProjectionLocked()
         if (testRunning) return@synchronized
         // Guidance can expire without a frame (a list that stays empty), so check every second.
         if (lastPushed != null && route.current() == null) endLocked()
-        else if (++ticksSincePush >= KEEPALIVE_TICKS) pushLocked(force = true)
     }
 
     /**
@@ -545,7 +531,7 @@ internal object EcarxHudBridge {
         }
     }
 
-    private fun pushLocked(force: Boolean) {
+    private fun pushLocked() {
         val app = context ?: return
         if (testRunning) return
         if (!EcarxOutputSettings.enabled(app)) {
@@ -563,7 +549,7 @@ internal object EcarxHudBridge {
         lastGuidanceDrivingDirection = guidance.drivingDirection.toString()
         lastSvgLength = guidance.navigationTurnSvg.length
         lastSvgHead = guidance.navigationTurnSvg.take(96)
-        if (!force && guidance == lastPushed) return
+        if (guidance == lastPushed) return
 
         // Order matches the toolkit: the aggregate payload first, then the discrete fields.
         val result = EcarxDimApi.updateNavigationInfo(naviRef, guidance)
@@ -580,10 +566,9 @@ internal object EcarxHudBridge {
         maneuver.road.takeIf { it.isNotEmpty() }
             ?.let { EcarxDimApi.updateNextGuidancePointName(naviRef, it) }
         if (EcarxOutputSettings.turnArrowExperimental(app)) {
-            // The arrow goes out through the string overload only. The int table is a demo ramp on
-            // this firmware and the bitmap channel was never proven either, so neither is tried as
-            // a fallback: an unmapped maneuver pushes nothing and the cluster keeps the arrow that
-            // updateNavigationInfo already carried.
+            // The arrow goes out through the string overload only. The int channel is gone and the
+            // bitmap channel is a calibration aid, so an unmapped maneuver pushes nothing and the
+            // cluster keeps the arrow that updateNavigationInfo already carried.
             lastArrowType = maneuver.type.toString()
             lastArrowDirection = maneuver.drivingSide.toString()
             val code = amapTurnCode(maneuver.type, maneuver.drivingSide)
@@ -615,7 +600,6 @@ internal object EcarxHudBridge {
         }
 
         lastPushed = guidance
-        ticksSincePush = 0
         if (!guidanceActive) {
             guidanceActive = true
             Log.i(TAG, "DIM guidance started turn=${guidance.turnId} road=\"${guidance.nextGuidancePointName}\"")
@@ -626,16 +610,11 @@ internal object EcarxHudBridge {
         val naviRef = navi
         if (naviRef != null) {
             EcarxDimApi.notifyTurnByTurnStopped(naviRef)
-            if (!testRunning && context?.let(EcarxOutputSettings::turnArrowExperimental) == true) {
-                EcarxDimApi.updateTurnByTurnArrow(naviRef, 0)
-            }
             EcarxDimApi.updateDistanceToNextGuidancePoint(naviRef, 0)
             EcarxDimApi.updateNextGuidancePointName(naviRef, "")
             EcarxDimApi.updateLaneInfoEmpty(naviRef)
         }
         lastPushed = null
-        lastManeuverKey = null
-        ticksSincePush = 0
         if (guidanceActive) {
             guidanceActive = false
             Log.i(TAG, "DIM guidance ended")
@@ -643,19 +622,14 @@ internal object EcarxHudBridge {
     }
 
     /**
-     * One [EcarxDimApi.Guidance] per maneuver. Only distance, destination distance, ETA, the road
-     * name and the live/idle status are recovered data; `turnId` and `drivingDirection` are
-     * documented placeholders (see the class comment).
+     * One [EcarxDimApi.Guidance] per maneuver. Distance, destination distance, ETA, the road name
+     * and the live/idle status are recovered data; `drivingDirection` is a documented placeholder
+     * (see the class comment), and `turnId` is the AutoNavi code when one exists.
      */
     private fun guidanceFor(maneuver: AppleManeuver): EcarxDimApi.Guidance {
-        val key = "${maneuver.type}|${maneuver.drivingSide}|${maneuver.road}"
-        if (key != lastManeuverKey) {
-            lastManeuverKey = key
-            turnId += 1
-        }
         return EcarxDimApi.Guidance(
-            // Experiment 0.3.11: the guidance payload also carries the AutoNavi code, so the
-            // cluster's own navigation arrow and the explicit int arrow agree on one namespace.
+            // The guidance payload also carries the AutoNavi code, so the cluster's own arrow uses
+            // the same namespace as the SVG table instead of a counter.
             turnId = amapTurnCode(maneuver.type, maneuver.drivingSide) ?: lastArrowCodeValue,
             distanceToNextMeters = maneuver.distanceMeters.toLong(),
             distanceToDestinationMeters = maneuver.remainingMeters ?: -1L,
@@ -1003,7 +977,6 @@ internal object EcarxHudBridge {
             append(" protocol=").append(protocol != null)
             append(" projectionWanted=").append(presentationWanted)
             append(" projectionAttempts=").append(presentationAttempts)
-            append(" turnId=").append(turnId)
             append(" active=").append(lastPushed != null)
             append(" status=").append(if (lastPushed != null) NAVI_STATUS_ACTIVE else NAVI_STATUS_IDLE)
             append(" laneFrames=").append(laneFrames)
@@ -1022,7 +995,7 @@ internal object EcarxHudBridge {
             append(" lastArrowSvgHead=").append(lastArrowSvgHead)
             append(" arrowTest=").append(testKind).append(" step=").append(testIndex)
                 .append('/').append(testTotal).append(" running=").append(testRunning)
-                .append(" lastTest=").append(testLastStep?.shape?.name ?: testLastStep?.turnId ?: "none")
+                .append(" lastTest=").append(testLastStep?.shape?.name ?: "none")
             append(" arrowOverloads=").append(arrowOverloads())
             append(" arrowTimeline=").append(arrowTimeline.joinToString("|"))
             append(" maneuverTimeline=").append(maneuverTimeline.joinToString("|"))

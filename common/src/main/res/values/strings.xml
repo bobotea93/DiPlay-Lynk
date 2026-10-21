@@ -1029,10 +1029,8 @@
     <string name="settings_ecarx_turn_arrow">Send arrow icons (experimental)</string>
     <string name="settings_ecarx_turn_arrow_description">Sends each maneuver\'s arrow as an SVG icon through the string turn-arrow call. On by default; turn it off to let the cluster keep its own arrow.</string>
     <string name="settings_ecarx_unavailable">The car rejected the request</string>
-    <string name="settings_ecarx_arrow_test">Test turn IDs (experimental)</string>
-    <string name="settings_ecarx_arrow_test_description">Each button pushes only the selected arrow call, one step every 2 seconds; press again to restart. Turn IDs run from 0 to 60, while the bitmap and SVG tests walk the basic maneuvers: straight, turns, U-turn, roundabout and destination.</string>
+    <string name="settings_ecarx_arrow_test_description">Each button pushes only the selected arrow call, one step every 2 seconds; press again to restart. The bitmap and SVG tests walk the basic maneuvers: straight, turns, U-turn, roundabout and destination.</string>
     <string name="settings_ecarx_arrow_test_idle">No test running</string>
-    <string name="settings_ecarx_arrow_test_current">Turn ID %1$d</string>
     <string name="settings_ecarx_bitmap_test">Test arrow bitmaps (experimental)</string>
     <string name="settings_ecarx_svg_test">Test arrow SVG (experimental)</string>
     <string name="settings_ecarx_arrow_bitmap_step">Bitmap %1$d/%2$d · %3$s</string>

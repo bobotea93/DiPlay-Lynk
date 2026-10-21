@@ -974,10 +974,8 @@
     <string name="settings_ecarx_turn_arrow">إرسال رموز الأسهم (تجريبي)</string>
     <string name="settings_ecarx_turn_arrow_description">يرسل سهم كل مناورة كرمز SVG. مُفعّل افتراضيًا؛ أوقفه لتترك للوحة العدادات سهمها الخاص.</string>
     <string name="settings_ecarx_unavailable">رفضت السيارة الطلب</string>
-    <string name="settings_ecarx_arrow_test">اختبار معرّفات الانعطاف (تجريبي)</string>
-    <string name="settings_ecarx_arrow_test_description">يرسل كل زر استدعاء سهم الانعطاف الخاص به فقط، خطوة واحدة كل ثانيتين؛ اضغط مرة أخرى لإعادة البدء. تمتد معرّفات الانعطاف من 0 إلى 60، بينما تمرّ اختبارات الصور النقطية وSVG على المناورات الأساسية: مستقيم، انعطاف، دوران للخلف، دوار، الوصول.</string>
+    <string name="settings_ecarx_arrow_test_description">يرسل كل زر استدعاء سهم الانعطاف الخاص به فقط، خطوة واحدة كل ثانيتين؛ اضغط مرة أخرى لإعادة البدء. تمرّ اختبارات الصور النقطية وSVG على المناورات الأساسية: مستقيم، انعطاف، دوران للخلف، دوار، الوصول.</string>
     <string name="settings_ecarx_arrow_test_idle">لا يوجد اختبار قيد التشغيل</string>
-    <string name="settings_ecarx_arrow_test_current">المعرّف الحالي %1$d</string>
     <string name="settings_ecarx_bitmap_test">اختبار أسهم الانعطاف النقطية (تجريبي)</string>
     <string name="settings_ecarx_svg_test">اختبار أسهم الانعطاف بصيغة SVG (تجريبي)</string>
     <string name="settings_ecarx_arrow_bitmap_step">نقطية %1$d/%2$d · %3$s</string>

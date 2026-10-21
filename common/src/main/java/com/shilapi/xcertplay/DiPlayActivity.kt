@@ -1741,8 +1741,6 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     private fun ecarxArrowTestText(step: EcarxArrowTestStep?): String {
         if (step == null) return getString(R.string.settings_ecarx_arrow_test_idle)
         return when (step.kind) {
-            EcarxArrowTestKind.TURN_ID ->
-                getString(R.string.settings_ecarx_arrow_test_current, step.turnId)
             EcarxArrowTestKind.BITMAP -> getString(
                 R.string.settings_ecarx_arrow_bitmap_step,
                 step.index + 1, step.total, ecarxArrowShapeName(step.shape),
@@ -1754,7 +1752,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         }
     }
 
-    private fun ecarxArrowShapeName(shape: EcarxArrowShape?): String {
+    private fun ecarxArrowShapeName(shape: EcarxArrowShape): String {
         val name = when (shape) {
             EcarxArrowShape.STRAIGHT -> R.string.settings_ecarx_arrow_shape_straight
             EcarxArrowShape.SLIGHT_LEFT -> R.string.settings_ecarx_arrow_shape_slight_left
@@ -1767,7 +1765,6 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             EcarxArrowShape.U_TURN_RIGHT -> R.string.settings_ecarx_arrow_shape_u_turn_right
             EcarxArrowShape.ROUNDABOUT -> R.string.settings_ecarx_arrow_shape_roundabout
             EcarxArrowShape.DESTINATION -> R.string.settings_ecarx_arrow_shape_destination
-            null -> return ""
         }
         return getString(name)
     }
@@ -2478,15 +2475,11 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             // The arrow-channel tests are calibration aids, not everyday settings, so they are
             // hidden by default; flip SHOW_ECARX_ARROW_TESTS to bring the card back.
             if (SHOW_ECARX_ARROW_TESTS) {
-                // The three arrow overloads are the open question on this head unit; each test
-                // drives exactly one of them. The readout follows the step actually pushed.
+                // The two icon overloads are the open question on this head unit; each test drives
+                // exactly one of them. The readout follows the step actually pushed.
                 val initialStep = ecarx.arrowTestStep()
                 val testStatus = label(ecarxArrowTestText(initialStep), 16, MUTED)
                 styleEcarxArrowTestStatus(testStatus, active = initialStep != null)
-                card.addView(
-                    ecarxArrowTestButton(R.string.settings_ecarx_arrow_test, EcarxArrowTestKind.TURN_ID, testStatus),
-                    matchButton(0, 60),
-                )
                 card.addView(
                     ecarxArrowTestButton(R.string.settings_ecarx_bitmap_test, EcarxArrowTestKind.BITMAP, testStatus),
                     matchButton(0, 60),

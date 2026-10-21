@@ -108,10 +108,9 @@ object EcarxOutputSettings {
     // ---------------------------------------------------------------- arrow-channel tests (diagnostic)
 
     /**
-     * Runs one arrow channel for calibration: turn IDs 0..60, or the basic maneuvers through the
-     * bitmap or SVG overload, one step every 2 seconds. Applies at once, leaves the saved
-     * settings alone, and normal guidance resumes when the test ends. [onStep] runs on a worker
-     * thread.
+     * Runs one arrow channel for calibration: the basic maneuvers through the bitmap or SVG
+     * overload, one step every 2 seconds. Applies at once, leaves the saved settings alone, and
+     * normal guidance resumes when the test ends. [onStep] runs on a worker thread.
      */
     fun startArrowTest(
         context: Context,
