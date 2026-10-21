@@ -924,6 +924,9 @@
     <string name="settings_ecarx_navi_mode_on">Preferir la navegación de CarPlay</string>
     <string name="settings_ecarx_turn_arrow">Enviar iconos de flecha (experimental)</string>
     <string name="settings_ecarx_turn_arrow_description">Envía la flecha de cada maniobra como icono SVG. Activado por defecto; desactívalo para que el cuadro use su propia flecha.</string>
+    <string name="settings_ecarx_lane_probe">Sondear ILaneInfo (experimental)</string>
+    <string name="settings_ecarx_lane_probe_title">Resultado de la sonda ILaneInfo</string>
+    <string name="settings_ecarx_lane_probe_hint">Enumera los métodos de ILaneInfo y luego envía carriles proxy para registrar los getters que lee el coche. Ejecútalo con el coche parado; la sonda necesita el control de navegación DIM.</string>
     <string name="settings_ecarx_unavailable">El coche rechazó la solicitud</string>
     <string name="settings_ecarx_arrow_test_description">Cada botón envía solo la llamada de flecha seleccionada, un paso cada 2 segundos; vuelve a pulsar para reiniciar. Las pruebas de mapa de bits y SVG recorren las maniobras básicas: recto, giros, cambio de sentido, rotonda y llegada.</string>
     <string name="settings_ecarx_arrow_test_idle">Ninguna prueba en curso</string>

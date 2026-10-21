@@ -168,15 +168,25 @@ internal object EcarxDimApi {
         call(navi, "updateNextGuidancePointName", arrayOf(String::class.java), arrayOf<Any?>(name),
             "updateNextGuidancePointName(\"$name\")")
 
+    /** Pushes one reflected `ILaneInfo[]` (used by the empty clear and by the lane probe). */
+    fun updateLaneInfo(navi: Any, lanes: Any): EcarxResult {
+        val count = runCatching { java.lang.reflect.Array.getLength(lanes) }.getOrDefault(0)
+        return call(
+            navi,
+            "updateLaneInfo",
+            arrayOf(lanes.javaClass),
+            arrayOf<Any?>(lanes),
+            "updateLaneInfo($count lanes)",
+        )
+    }
+
     /** Clears the lane strip. An empty typed array is what the stock apps send when none remain. */
     fun updateLaneInfoEmpty(navi: Any): EcarxResult {
         val lane = runCatching { Class.forName(EcarxCapabilities.LANE_INFO) }.getOrNull()
             ?: return EcarxResult.failed("ILaneInfo class missing")
         val empty = runCatching { java.lang.reflect.Array.newInstance(lane, 0) }
             .getOrElse { return EcarxResult.failed("ILaneInfo[] allocation failed: ${describe(it)}") }
-        // The declared parameter is ILaneInfo[]; take the type off the array we just built so the
-        // lookup matches the interface method exactly.
-        return call(navi, "updateLaneInfo", arrayOf(empty.javaClass), arrayOf<Any?>(empty), "updateLaneInfo(empty)")
+        return updateLaneInfo(navi, empty)
     }
 
     fun notifyTurnByTurnStarted(navi: Any): EcarxResult = call0(navi, "notifyTurnByTurnStarted")
