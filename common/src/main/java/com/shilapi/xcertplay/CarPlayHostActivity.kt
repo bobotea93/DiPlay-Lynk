@@ -1570,7 +1570,7 @@ class CarPlayHostActivity : ComponentActivity() {
         // Provide standard virtual cluster stream (1280x720, 16:9 aspect) for CenterMapOverlay and MapEmbedService.
         MapMirrors.streamAspect = MapMirrors.VIRTUAL_STREAM_ASPECT
         return CarPlayClusterDisplay.config(
-            widthPixels = 1280,
+            widthPixels = 1920,
             heightPixels = 720,
             scalePercent = 100,
             content = AirPlayPersistence.loadClusterContent(this),
