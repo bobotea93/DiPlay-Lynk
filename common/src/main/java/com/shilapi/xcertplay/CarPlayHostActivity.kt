@@ -1534,8 +1534,8 @@ class CarPlayHostActivity : ComponentActivity() {
                 val smallWindow = smallWindowActive()
                 requestedSmallWindowForStream = smallWindow
                 fun streamAt(scale: Int) = CarPlayClusterDisplay.config(
-                    size.x,
-                    size.y,
+                    1920,            // 原来是 size.x（1280）
+                    720,             // 原来是 size.y（720）
                     scale,
                     0,
                     0,
