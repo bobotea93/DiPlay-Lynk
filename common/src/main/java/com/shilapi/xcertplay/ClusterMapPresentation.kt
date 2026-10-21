@@ -80,11 +80,17 @@ internal class ClusterMapPresentation(
                         DiLink51ClusterLayout.STREAM_HEIGHT.toFloat() / plan.height)
                     postTranslate(-plan.sourceLeft.toFloat(), -plan.sourceTop.toFloat())
                 })
-            }
+            }else if (com.shilapi.xcertplay.hud.EcarxCapabilities.available(context)) {
+                // ECARX：8:3 宽屏流(1920x720) → 16:9 面板(1280x720)，等比缩放 + 上下黑边
+                val textureView = TextureView(context)
             textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                 override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
-                    texture.setDefaultBufferSize(DiLink51ClusterLayout.STREAM_WIDTH, DiLink51ClusterLayout.STREAM_HEIGHT)
-                    transform()
+                    texture.setDefaultBufferSize(1920, 720)
+                    textureView.setTransform(Matrix().apply {
+                        val s = size.x.toFloat() / 1920f          // 0.6667
+                        setScale(s, s)
+                        postTranslate(0f, (size.y - 720f * s) / 2f) // 垂直居中，上下黑边
+                    })
                     outputSurface = Surface(texture).also(onSurface)
                 }
                 override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) = transform()
